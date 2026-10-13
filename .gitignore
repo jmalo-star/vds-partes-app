@@ -2,3 +2,8 @@
 .DS_Store
 Thumbs.db
 node_modules/
+
+# Datos maestros reales (contratos, imputaciones, personal): no se suben al repo
+datos/
+*maestros*.json
+*datos_maestros*.xlsx
