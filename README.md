@@ -63,9 +63,12 @@ Los scripts se cargan en ese orden y comparten el ámbito global.
 ## Qué incluye
 
 - Planificación por contrato, centro de costo e imputación. Los contratos se listan agrupados por cliente y ordenados por número, uno por número.
+- Una cuadrilla puede tener varios trabajos en el mismo día: se ordenan (1º, 2º…) y opcionalmente llevan hora de inicio. La hora es una guía para el operador; no limita la carga del parte.
 - Personas y equipos de cada trabajo con desplegables de búsqueda: se escribe y se elige, con la habilitación de cada uno a la vista.
-- Vistas Gantt, por recurso y mes, con ocupación y filtro por cliente y contrato. En el Gantt los trabajos se mueven y estiran arrastrando.
-- Parte diario en 5 pasos (inicio, personal, equipos, tareas y tiempos, cierre), con controles automáticos, firma del jefe de cuadrilla, fotos y pedidos de más días.
+- Vistas Gantt, por recurso y mes, con ocupación y filtro por cliente y contrato. En las tres se mueve un trabajo de día arrastrándolo; en el Gantt también se estira o acorta desde el borde.
+- Parte diario en 4 pasos (inicio, personal y equipos, tareas y tiempos, cierre), con controles automáticos, firma del jefe de cuadrilla, fotos y pedidos de más días.
+- El personal solo se marca presente o ausente. Su horario se calcula solo, desde la llegada a la instalación hasta el último tramo del día en la locación, y se puede ajustar por persona en el cierre.
+- Las fotos se sacan con la cámara o se eligen de la galería, y se guardan en la base del dispositivo (IndexedDB) para no llenar el almacenamiento. Salen en el resumen del parte, en la aprobación y en el PDF.
 - Aprobación del planner y certificación del cliente con firma, con el detalle del parte en pestañas.
 - Dashboard del cliente con filtros y exportación a Excel.
 - Registro de actividad con motivo obligatorio para los cambios de administración.

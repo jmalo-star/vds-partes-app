@@ -1,10 +1,11 @@
 /* ---------- acciones: enlaces de formularios y botones (data-a) ---------- */
-function bindObj(root){return root==='m'?UI.modal&&UI.modal.f:root==='e'?cur().ejec:root==='p'?cur():root==='l'?UI.login:root==='v'||root==='u'?UI:root==='n'?UI.newT:root==='i'?UI.newI:root==='w'?UI.newU:root==='s'?S:root==='k'?S.contratos:root==='q'?S.cat.cuadrillas:null}
+function bindObj(root){return root==='m'?UI.modal&&UI.modal.f:root==='d'?trab(UI.drawer):root==='e'?cur().ejec:root==='p'?cur():root==='l'?UI.login:root==='v'||root==='u'?UI:root==='n'?UI.newT:root==='i'?UI.newI:root==='w'?UI.newU:root==='s'?S:root==='k'?S.contratos:root==='q'?S.cat.cuadrillas:null}
 function getBind(path){const i=path.indexOf(':');let o=bindObj(path.slice(0,i));for(const k of path.slice(i+1).split('.')){if(o==null)return '';o=o[k]}return o??''}
 function setBind(path,val){
   const i=path.indexOf(':'),root=path.slice(0,i),keys=path.slice(i+1).split('.');
   let o=bindObj(root);
   if(!o)return;
+  if(root==='d'&&keys[0]==='hora'&&o.hora!==val){const txt=`Hora de inicio: ${o.hora||'sin hora'} → ${val||'sin hora'}`;o.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Hora de inicio modificada',o.id,txt,'','trabajo')}
   if(root==='e'&&keys[0]==='clima'){if(!o.clima)o.clima={t:'',v:'',r:'',dir:'O',cond:'Despejado',src:'manual'};o.clima.src='manual'}
   if(root==='e'&&keys[0]==='permiso'&&!o.permiso)o.permiso={num:'',firmo:'',hora:''};
   for(let k=0;k<keys.length-1;k++)o=o[keys[k]];
@@ -27,7 +28,7 @@ function moveT(t,inicio,dias,why){
   const txt=a.d!==dias&&a.i===inicio?`Duración: ${a.d} → ${dias} días (hasta ${fDay(tEnd(t))})`:a.i!==inicio&&a.d===dias?`Reprogramado: ${fDay(a.i)} → ${fDay(inicio)}`:`Reprogramado: ${fDay(inicio)} → ${fDay(tEnd(t))} · ${dias} días`;
   t.hist.push({t:nowT(),who:meN(),a:txt,c:why||''});
   logA(a.d!==dias&&a.i===inicio?'Duración modificada':'Trabajo reprogramado',t.id,txt,why||'','trabajo');
-  const cl=clashes(t);toast(`${t.id} · ${txt}${cl.length?' · se superpone con '+cl.map(x=>x.id).join(', '):''}`);
+  const cl=clashes(t);toast(`${t.id} · ${txt}${cl.length?' · comparte días con '+cl.map(x=>x.id).join(', '):''}`);
 }
 const whoCli=p=>role()==='cliente'?USERS.cliente.n+' · '+OPS[p.op]:meN()+' (admin)';
 function askWhy(title,desc,ok,fn){UI.whyBack=UI.modal;UI.whyFn=fn;UI.whyTxt='';UI.modal={kind:'why',title,desc,ok,err:''};render();setTimeout(()=>{const t=$('#why-t');if(t)t.focus()},30)}
@@ -65,6 +66,10 @@ const A={
   't-edit':()=>openTrab(null,null,UI.drawer),
   'close-drawer':()=>{UI.drawer=null;render()},
   't-dias':d=>{const t=trab(UI.drawer);const nd=t.dias+Number(d.d);if(nd<minDias(t)||nd>30)return;moveT(t,t.inicio,nd);render()},
+  't-ord':d=>{const t=trab(UI.drawer),o=Number(d.o);if((t.orden||0)===o)return;const txt=`Orden en el día: ${ORDS[t.orden||0][1]} → ${ORDS[o][1]}`;t.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Orden del día modificado',t.id,txt,'','trabajo');t.orden=o;render()},
+  't-nohora':()=>{setBind('d:hora','');UI.tp={};render()},
+  'm-nohora':()=>{UI.modal.f.hora='';delete UI.tp['m:hora'];render()},
+  'o-pauto':d=>{const x=cur().ejec.personal[Number(d.i)];x.ini='';x.fin='';delete x.zona;delete x.out;delete x.base;Object.keys(UI.tp).filter(k=>k.startsWith(`e:personal.${d.i}.`)).forEach(k=>delete UI.tp[k]);toast(`${x.n}: vuelve al horario automático`);render()},
   't-prio':d=>{const t=trab(UI.drawer);if(t.prio===d.p)return;const txt=`Prioridad: ${PRIO[t.prio]} → ${PRIO[d.p]}`;t.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Prioridad modificada',t.id,txt,'','trabajo');t.prio=d.p;render()},
   'x-ok':d=>{const t=trab(d.id);const x=t.ext;t.ext=null;t.hist.push({t:nowT(),who:meN(),a:`Extensión aprobada: +${x.dias} día(s)`,c:x.motivo});moveT(t,t.inicio,t.dias+x.dias,'Pedido de '+x.who+': '+x.motivo);if(!S.trabajos.some(y=>y.ext))UI.reqs=false;render()},
   'x-no':d=>{const t=trab(d.id);const x=t.ext;t.ext=null;t.hist.push({t:nowT(),who:meN(),a:'Extensión rechazada',c:x.motivo});logA('Extensión rechazada',t.id,`Pedido de ${x.who}: +${x.dias} día(s) · ${x.motivo}`,'','trabajo');toast(`${t.id}: extensión rechazada. El trabajo termina el ${fDay(tEnd(t))}`);if(!S.trabajos.some(y=>y.ext))UI.reqs=false;render()},
@@ -131,8 +136,7 @@ const A={
   'o-ptundo':()=>{const p=cur(),e=p.ejec;if(UI.ptPrev&&UI.ptPrev.id===p.id)e.permiso=JSON.parse(UI.ptPrev.v);else e.permiso={num:(e.permiso||{}).num||'',firmo:'',hora:''};UI.ptPrev=null;toast('Firma del permiso deshecha');render()},
   'o-clima':()=>fetchClima(),
   'o-pres':d=>{const x=cur().ejec.personal[d.i];x.pres=!x.pres;render()},
-  'o-allz':()=>{const ps=cur().ejec.personal,j=ps[0];ps.forEach(x=>{if(x!==j&&x.pres){x.base=j.base;x.zona=j.zona;x.out=j.out}});render()},
-  'o-addp':d=>{const e=cur().ejec;if(!e.personal.some(x=>x.n===d.n))e.personal.push({n:d.n,rol:ROLEP[d.n]||'Operario',base:'',zona:'',out:'',pres:true,add:true});render()},
+  'o-addp':d=>{const e=cur().ejec;if(!e.personal.some(x=>x.n===d.n))e.personal.push({n:d.n,rol:ROLEP[d.n]||'Operario',pres:true,ini:'',fin:'',add:true});render()},
   'o-delp':d=>{cur().ejec.personal.splice(Number(d.i),1);render()},
   'o-adde':d=>{const e=cur().ejec;if(!e.equipos.some(q=>q.c===d.n))e.equipos.push({c:d.n,km:'',obs:''});render()},
   'o-dele':d=>{cur().ejec.equipos.splice(Number(d.i),1);render()},
@@ -141,7 +145,7 @@ const A={
     const tb=document.querySelector('.edbody [data-keep="t"]');if(tb)tb.scrollTop=tb.scrollHeight;
     if((d.c==='op'&&!d.d)||d.c==='es'||d.c==='vi')setTimeout(()=>{const el=document.getElementById((d.c==='vi'?'f-rq':'f-rd')+(r.length-1));if(el)el.focus()},20)},
   'o-delr':d=>{cur().ejec.reg.splice(Number(d.i),1);render()},
-  'o-delf':d=>{cur().ejec.fotos.splice(Number(d.i),1);render()},
+  'o-delf':d=>{const f=cur().ejec.fotos.splice(Number(d.i),1)[0];if(f&&f.id){mediaDel(f.id);if(MEDIA.url[f.id]){URL.revokeObjectURL(MEDIA.url[f.id]);delete MEDIA.url[f.id]}}render()},
   'o-sigclear':()=>{cur().ejec.firma=null;render()},
   'o-fin':d=>{const p=cur();p.fin=d.v;if(d.v==='ext'&&!p.ext)p.ext={dias:1,motivo:''};render()},
   'o-extd':d=>{const p=cur();p.ext.dias=Math.max(1,Math.min(10,p.ext.dias+Number(d.d)));render()},
@@ -178,9 +182,9 @@ function submitTrab(){
   const cU=CT(f.ct);cU.ubic=cU.ubic||[];const fu=cU.ubic.find(u=>norm(u)===norm(f.pozo));
   if(fu)f.pozo=fu;else{cU.ubic.push(f.pozo.trim());logA('Ubicación agregada al catálogo',f.ct,f.pozo.trim(),'','config')}
   const ccx=(cU.ccs||[[cU.cc,cU.ccn]])[Number(f.ccsel)||0]||[cU.cc,cU.ccn];
-  const vals={ct:f.ct,imp:f.imp,cc:ccx[0],ccn:ccx[1],rec:f.rec,yac:'',pozo:f.pozo.trim(),inicio:f.inicio,dias:f.dias,prio:f.prio,ptw:f.ptw,sup:f.sup,rt:f.rt,prev:f.prev.slice(),ind:f.ind.trim(),pers:f.pers.slice(),eqs:f.eqs.slice()};
+  const vals={ct:f.ct,imp:f.imp,cc:ccx[0],ccn:ccx[1],rec:f.rec,yac:'',pozo:f.pozo.trim(),inicio:f.inicio,dias:f.dias,prio:f.prio,ptw:f.ptw,hora:mins(f.hora)!=null?f.hora:'',orden:Number(f.orden)||0,sup:f.sup,rt:f.rt,prev:f.prev.slice(),ind:f.ind.trim(),pers:f.pers.slice(),eqs:f.eqs.slice()};
   if(M.edit){const t=trab(M.edit);const ch=[];
-    [['ct','contrato'],['imp','imputación'],['cc','centro de costo'],['rec','recurso'],['pozo','ubicación'],['inicio','inicio'],['dias','duración'],['prio','prioridad'],['ptw','permiso'],['sup','supervisor'],['rt','responsable técnico'],['ind','indicaciones']].forEach(([k,l])=>{const before=k==='cc'?(t.cc||CT(t.ct).cc):k==='pozo'?locOf(t):t[k];if(String(before)!==String(vals[k]))ch.push(l)});
+    [['ct','contrato'],['imp','imputación'],['cc','centro de costo'],['rec','recurso'],['pozo','ubicación'],['inicio','inicio'],['dias','duración'],['prio','prioridad'],['ptw','permiso'],['hora','hora de inicio'],['orden','orden en el día'],['sup','supervisor'],['rt','responsable técnico'],['ind','indicaciones']].forEach(([k,l])=>{const before=k==='cc'?(t.cc||CT(t.ct).cc):k==='pozo'?locOf(t):k==='hora'?(t.hora||''):k==='orden'?(t.orden||0):t[k];if(String(before)!==String(vals[k]))ch.push(l)});
     if(t.prev.join('|')!==vals.prev.join('|'))ch.push('tareas');if(t.pers.join('|')!==vals.pers.join('|'))ch.push('personas');if(t.eqs.join('|')!==vals.eqs.join('|'))ch.push('equipos');
     Object.assign(t,vals);
     t.hist.push({t:nowT(),who:meN(),a:'Editado: '+(ch.join(', ')||'sin cambios'),c:f.mot.trim()});logA('Trabajo editado',t.id,'Cambió: '+(ch.join(', ')||'sin cambios'),f.mot.trim(),'trabajo');UI.modal=null;UI.drawer=t.id;toast(`${t.id} actualizado`);render();return}
@@ -188,7 +192,7 @@ function submitTrab(){
   const id='PL-'+String(n).padStart(3,'0');
   const t=Object.assign({id,cierre:null,ext:null,hist:[{t:nowT(),who:meN(),a:'Planificado',c:''}]},vals);
   S.trabajos.push(t);UI.modal=null;logA('Trabajo planificado',id,`${recOf(f.rec).n} · ${f.pozo.trim()} · ${fDay(f.inicio)} → ${fDay(tEnd(t))} · ${f.imp}`,'','trabajo');
-  const cl=clashes(t);toast(`${id} planificado · ${recOf(f.rec).n}, ${fDay(f.inicio)} → ${fDay(tEnd(t))}${cl.length?' · se superpone con '+cl.map(x=>x.id).join(', '):''}`);render();
+  const cl=clashes(t);toast(`${id} planificado · ${recOf(f.rec).n}, ${fDay(f.inicio)} → ${fDay(tEnd(t))}${cl.length?' · comparte días con '+cl.map(x=>x.id).join(', '):''}`);render();
 }
 function submitHab(){const f=UI.modal.f;const k=f.s+'|'+f.op;
   if(!f.sin&&!f.vence){f.err='Elegí la fecha de vencimiento.';render();return}
@@ -198,10 +202,17 @@ function submitHab(){const f=UI.modal.f;const k=f.s+'|'+f.op;
   const after=f.sin?'sin habilitación':'vence '+fS(f.vence);
   logA('Habilitación modificada',f.s,`${OPS[f.op]}: ${before} → ${after}`,f.mot.trim(),'config');
   UI.modal=null;toast(`Habilitación de ${f.s} para ${OPS[f.op]} actualizada`);render()}
+/* Fotos del parte: se achican a 1600 px y se guardan en la base del dispositivo (IndexedDB), no en el estado */
 function onFiles(inp){
-  const e=cur().ejec;const files=[...inp.files].slice(0,8);let pending=files.length;
-  files.forEach(file=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,900/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-    e.fotos.push({src:c.toDataURL('image/jpeg',.75),cap:file.name.replace(/\.[^.]+$/,'')});if(--pending===0)render()};im.onerror=()=>{if(--pending===0)render()};im.src=r.result};r.readAsDataURL(file)});
+  const p=cur();if(!p||!p.ejec)return;const e=p.ejec,files=[...inp.files].slice(0,10);inp.value='';if(!files.length)return;
+  let ok=0;toast(files.length>1?`Guardando ${files.length} fotos…`:'Guardando la foto…');render();
+  const one=file=>new Promise(res=>{const url=URL.createObjectURL(file),im=new Image();
+    im.onload=()=>{const k=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      c.toBlob(b=>{if(!b)return res(false);const id='F-'+p.id+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+        mediaPut(id,b).then(()=>{MEDIA.url[id]=URL.createObjectURL(b);e.fotos.push({id,cap:`Foto ${e.fotos.length+1} · ${hm()}`,t:nowT()});ok++;res(true)}).catch(()=>res(false))},'image/jpeg',.82)};
+    im.onerror=()=>{URL.revokeObjectURL(url);res(false)};im.src=url});
+  (async()=>{for(const f of files)await one(f);const bad=files.length-ok;
+    toast(ok?`${ok} foto${ok>1?'s':''} agregada${ok>1?'s':''} al parte${bad?` · ${bad} no se pudo leer`:''}`:'No se pudo agregar la foto: el formato no es compatible o no hay espacio en el dispositivo');render()})();
 }
 async function onImport(inp){const file=inp.files&&inp.files[0];if(!file)return;
   try{let res;if(/\.json$/i.test(file.name))res=fromJson(JSON.parse(await file.text()),file.name);

@@ -3,7 +3,7 @@
    Archivos propios: red primero (siempre la última versión) y caché si no hay señal.
    Librerías y fuentes de CDN: caché primero (las URL tienen versión fija).
    Subí VERSION en cada publicación para limpiar la caché vieja. */
-const VERSION='vds-partes-0.7.0';
+const VERSION='vds-partes-0.7.1';
 const SHELL=['./','index.html','css/app.css','manifest.webmanifest',
   'js/config.js','js/util.js','js/data.js','js/import.js','js/state.js','js/ui.js','js/views-plan.js','js/views-parte.js','js/views-review.js','js/views-admin.js','js/modals.js','js/export.js','js/actions.js','js/main.js',
   'assets/img/login-noche.webp','assets/img/login-dia.webp','assets/img/campo.webp',

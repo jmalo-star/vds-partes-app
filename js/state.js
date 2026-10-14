@@ -9,8 +9,22 @@ function fresh(){const cat=demoCat();applyCat(cat);CTS=JSON.parse(JSON.stringify
   Object.entries(CTS).forEach(([k,c])=>{c.ubic=[...new Set(s.T.filter(t=>t.ct===k).map(locOf))].sort();c.eqs=[...new Set(c.recs.flatMap(r=>VEH[r]||[]))]});
   return Object.assign(baseState(),{v:7,cat,trabajos:s.T,partes:s.P,contratos:CTS,hab:seedHab(),adm:{planner:true,planner2:false},log:seedLog(s.T,s.P)})}
 /* Almacenamiento local del dispositivo. Cuando haya backend, load/save pasan a sincronizar con la API. */
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.v===7&&x.cat&&Array.isArray(x.partes)&&Array.isArray(x.trabajos)&&Array.isArray(x.log)){applyCat(x.cat);CTS=x.contratos;return Object.assign(baseState(),x)}}catch(e){}return null}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.v===7&&x.cat&&Array.isArray(x.partes)&&Array.isArray(x.trabajos)&&Array.isArray(x.log)){applyCat(x.cat);CTS=x.contratos;migrate(x);return Object.assign(baseState(),x)}}catch(e){}return null}
+/* v0.7.1: el personal ya no carga ingreso a base ni horarios: se calculan desde la llegada y los tramos */
+function migrate(x){x.partes.forEach(p=>{if(p.ejec)p.ejec.personal.forEach(q=>{if('base' in q){delete q.base;delete q.zona;delete q.out;q.ini=q.ini||'';q.fin=q.fin||''}})});x.trabajos.forEach(t=>{if(t.orden==null)t.orden=0;if(t.hora==null)t.hora=''})}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));UI.saveErr=false}catch(e){if(!UI.saveErr){UI.saveErr=true;toast('No queda espacio en el dispositivo para guardar los cambios. Sincronizá o liberá espacio antes de seguir.');setTimeout(render,0)}}}
+
+/* ---------- fotos: se guardan aparte (IndexedDB) para no llenar el almacenamiento del estado ---------- */
+const MEDIA={db:null,url:{},pend:{}};
+function mediaDB(){if(!MEDIA.db)MEDIA.db=new Promise((res,rej)=>{const r=indexedDB.open('vds-media',1);r.onupgradeneeded=()=>r.result.createObjectStore('fotos');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return MEDIA.db}
+const mediaTx=(mode,fn)=>mediaDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction('fotos',mode),st=tx.objectStore('fotos');let out;const q=fn(st);if(q)q.onsuccess=()=>{out=q.result};tx.oncomplete=()=>res(out);tx.onerror=()=>rej(tx.error)}));
+const mediaPut=(id,blob)=>mediaTx('readwrite',st=>st.put(blob,id));
+const mediaGet=id=>mediaTx('readonly',st=>st.get(id));
+const mediaDel=id=>mediaTx('readwrite',st=>st.delete(id)).catch(()=>{});
+/* src de una foto para mostrar: las nuevas están en IndexedDB (f.id); las viejas traen f.src */
+function fotoSrc(f){if(f.src)return f.src;if(!f.id)return '';if(MEDIA.url[f.id])return MEDIA.url[f.id];
+  if(!MEDIA.pend[f.id])MEDIA.pend[f.id]=mediaGet(f.id).then(b=>{if(b){MEDIA.url[f.id]=URL.createObjectURL(b);render()}}).catch(()=>{});return ''}
+async function fotoData(f){if(f.src)return f.src;if(!f.id)return null;const b=await mediaGet(f.id).catch(()=>null);if(!b)return null;return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res(null);r.readAsDataURL(b)})}
 function regenExamples(){const keep={cat:S.cat,contratos:S.contratos,hab:S.hab,adm:S.adm,log:S.log,user:S.user,route:S.route};applyCat(keep.cat);CTS=keep.contratos;const s=exampleSeed();S=Object.assign(baseState(),{v:7},keep,{trabajos:s.T,partes:s.P})}
 
 /* ---------- accesos ---------- */
@@ -34,7 +48,11 @@ function tState(t){const s=tDays(t).map(f=>dayState(t,f));
 const minDias=t=>{let m=1;tDays(t).forEach((f,i)=>{if(parteOf(t.id,f))m=i+1});return m};
 const started=t=>tDays(t).some(f=>parteOf(t.id,f));
 const overl=(a,b)=>a.inicio<=tEnd(b)&&b.inicio<=tEnd(a);
+/* Trabajos de la misma cuadrilla en las mismas fechas: se permiten (varios trabajos en el día) y se ordenan */
 const clashes=t=>S.trabajos.filter(o=>o!==t&&o.rec===t.rec&&overl(o,t));
+const ordKey=t=>[t.orden||9,t.hora||'99:99',t.inicio,t.id].join('|');
+const byOrd=(a,b)=>((a.orden||9)-(b.orden||9))||(a.hora||'99:99').localeCompare(b.hora||'99:99')||a.inicio.localeCompare(b.inicio)||a.id.localeCompare(b.id);
+const ordTxt=t=>[t.orden?ORDS[t.orden][1]+' del día':'',t.hora?'inicio '+t.hora:''].filter(Boolean).join(' · ');
 const fT=()=>S.trabajos.filter(t=>(S.fop==='all'||CT(t.ct).op===S.fop)&&(S.fct==='all'||t.ct===S.fct));
 const busy=(rec,f,L)=>(L||S.trabajos).some(t=>t.rec===rec&&covers(t,f));
 const occRec=(rec,days,L)=>Math.round(days.filter(f=>busy(rec,f,L)).length/days.length*100);
@@ -67,6 +85,14 @@ const habTxt=(h,long)=>h.st==='ok'?(long?'Hasta '+fS(h.vence):'Habilitado'):h.st
 const busyRes=(kind,name,days,exceptId)=>S.trabajos.filter(o=>o.id!==exceptId&&(kind==='p'?o.pers:o.eqs).includes(name)&&days.some(d=>covers(o,d))).map(o=>o.id);
 const regQ=x=>x.c==='op'&&Number(x.q)>0?num(x.q)+' '+(x.u||''):x.c==='vi'&&Number(x.q)>0?num(x.q)+' km/h':'';
 
+/* ---------- horario del personal: se toma solo de la llegada y de los tramos del día, y se puede ajustar ---------- */
+const autoIni=e=>{if(e.llegada)return e.llegada;const r=e.reg.filter(x=>x.c!=='tr'&&mins(x.de)!=null).sort((a,b)=>mins(a.de)-mins(b.de));return r[0]?r[0].de:''};
+const autoFin=e=>{const r=e.reg.filter(x=>x.c!=='tr'&&mins(x.a)!=null);return r.length?r.reduce((m,x)=>mins(x.a)>mins(m)?x.a:m,r[0].a):''};
+const pIni=(e,x)=>x.ini||x.zona||autoIni(e);
+const pFin=(e,x)=>x.fin||x.out||autoFin(e);
+const pDur=(e,x)=>{const a=pIni(e,x),b=pFin(e,x);return a&&b?dur(a,b):0};
+const pManual=x=>!!(x.ini||x.fin||x.zona||x.out);
+
 /* ---------- reglas del parte ---------- */
 function lastKm(c,p){let k=null;S.partes.forEach(o=>{if(o===p||!o.ejec)return;if(p&&(o.fecha>p.fecha||(o.fecha===p.fecha&&o.id>p.id)))return;o.ejec.equipos.forEach(q=>{if(q.c===c&&q.km!==''){const v=Number(q.km);if(k===null||v>k)k=v}})});return k===null?(KM0[c]??null):k}
 function prod(p){const r={};(p.ejec?p.ejec.reg:[]).filter(x=>x.c==='op'&&x.d).forEach(x=>{const k=x.d+'|'+x.u;r[k]=r[k]||{d:x.d,u:x.u,q:0};r[k].q+=Number(x.q)||0});return Object.values(r)}
@@ -80,9 +106,9 @@ function checks(p){
   if(!pres.length)out.push(['err','No hay personal presente','Personal']);
   pres.forEach(x=>{const h=hab(x.n,p.op,p.fecha);
     if(habBad(h))out.push(['err',`${x.n}: ${h.st==='venc'?'habilitación vencida el '+fS(h.vence):'sin habilitación'} para ${OPS[p.op]}`,'Personal']);
-    const miss=[!x.base&&'ingreso a base',!x.zona&&'llegada a zona',!x.out&&'salida'].filter(Boolean);
-    if(miss.length)out.push(['err',`${x.n}: falta ${miss.join(', ')}`,'Personal']);
-    else if(dur(x.base,x.out)>720)out.push(['warn',`${x.n}: jornada de ${fmtH(dur(x.base,x.out))}, supera 12 h`,'Personal']);
+    const d=pDur(e,x);
+    if(e.reg.length&&!d)out.push(['warn',`${x.n}: sin horario (falta la llegada o el último tramo del día)`,'Cierre']);
+    else if(d>720)out.push(['warn',`${x.n}: jornada de ${fmtH(d)}, supera 12 h`,'Cierre']);
   });
   e.equipos.forEach(q=>{const h=hab(q.c,p.op,p.fecha),pk=lastKm(q.c,p);
     if(habBad(h))out.push(['err',`${q.c} ${EQ[q.c]}: ${h.st==='venc'?'habilitación vencida el '+fS(h.vence):'sin habilitación'} para ${OPS[p.op]}`,'Equipos']);
@@ -103,7 +129,7 @@ function checks(p){
   if(e.clima&&Number(e.clima.r)>=60&&!e.reg.some(t=>t.c==='vi'))out.push(['warn',`Ráfagas de ${e.clima.r} km/h sin parada por viento registrada`,'Tareas']);
   const esp=e.reg.filter(t=>t.c==='es').reduce((s,t)=>s+dur(t.de,t.a),0);
   if(esp>60)out.push([e.obs.trim()?'warn':'err',`Espera de operadora de ${fmtH(esp)}${e.obs.trim()?' (justificada en observaciones)':': justificar en observaciones'}`,e.obs.trim()?'Tareas':'Cierre']);
-  if(!p.sup||!p.rt)out.push(['err','Falta supervisor responsable o responsable técnico','Cierre']);
+  if(!p.sup||!p.rt)out.push(['err','Falta supervisor responsable o responsable técnico','Inicio']);
   const t=trab(p.pl);
   if(p.fin==='sigue'&&t&&p.dia>=t.dias-1)out.push(['err','Es el último día planificado: cerrá el trabajo o pedí más días','Cierre']);
   if(p.fin==='ext'&&(!p.ext||!p.ext.motivo.trim()))out.push(['err','Indicá el motivo para pedir más días','Cierre']);
@@ -114,22 +140,20 @@ const errs=p=>checks(p).filter(c=>c[0]==='err');
 function sums(p){
   const e=p.ejec||{personal:[],equipos:[],reg:[]};
   const pr=e.personal.filter(x=>x.pres);
-  const hh=pr.filter(x=>x.base&&x.out).reduce((s,x)=>s+dur(x.base,x.out),0);
-  const hz=pr.filter(x=>x.zona&&x.out).reduce((s,x)=>s+dur(x.zona,x.out),0);
+  const hh=p.ejec?pr.reduce((s,x)=>s+pDur(e,x),0):0;
   const km=e.equipos.reduce((s,q)=>{const pk=lastKm(q.c,p);return s+(q.km!==''&&pk!==null&&Number(q.km)>=pk?Number(q.km)-pk:0)},0);
   const jor=e.reg.reduce((s,t)=>s+dur(t.de,t.a),0);
   const byc={};e.reg.forEach(t=>byc[t.c]=(byc[t.c]||0)+dur(t.de,t.a));
-  return {pers:pr.length,hh,hz,km,jor,byc};
+  return {pers:pr.length,hh,km,jor,byc};
 }
 function stepOk(p,i){
   const e=p.ejec;if(!e)return false;
-  const c=checks(p).filter(x=>x[0]==='err');
-  const sec=['Inicio','Personal','Equipos','Tareas','Cierre'][i];
-  return !c.some(x=>x[2]===sec)&&(i!==3||e.reg.length>0);
+  const c=checks(p).filter(x=>x[0]==='err'),sec=STEP_SEC[i]||[];
+  return !c.some(x=>sec.includes(x[2]))&&(i!==2||e.reg.length>0);
 }
 function newEjec(p){
   return {check:{charla:false,epp:false},llegada:'',permiso:p.ptw?{num:'',firmo:'',hora:''}:null,clima:null,
-    personal:(p.pers||CREW[p.rec]).map(n=>({n,rol:ROLEP[n]||'Operario',base:'',zona:'',out:'',pres:true})),
+    personal:(p.pers||CREW[p.rec]).map(n=>({n,rol:ROLEP[n]||'Operario',pres:true,ini:'',fin:''})),
     equipos:(p.eqs||VEH[p.rec]).map(c=>({c,km:'',obs:''})),reg:[],obs:'',fotos:[],firma:null};
 }
 function trabTotals(t,extraP){

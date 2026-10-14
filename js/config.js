@@ -4,7 +4,7 @@
    el ámbito global: config → util → data → import → state → ui
    → vistas → modals → export → actions → main.
    ============================================================ */
-const APP_VERSION='0.7.0';
+const APP_VERSION='0.7.1';
 const KEY='vds-partes-proto-7';          // estado guardado en el dispositivo (localStorage)
 const THEME_KEY='vds-theme';             // preferencia de modo diurno / nocturno
 const EVAL=true;                         // versión de evaluación: usuarios de prueba y datos locales
@@ -34,8 +34,10 @@ const PRIO={urg:'Urgente',alta:'Alta',media:'Media',baja:'Baja'};
 const PRIO_C={urg:'var(--st-err)',alta:'var(--pr-alta)',media:'var(--st-plan)',baja:'var(--faint)'};
 const DIRS=['N','NE','E','SE','S','SO','O','NO'];
 const CONDS=['Despejado','Nublado parcial','Nublado','Ventoso','Lluvia','Nieve'];
-const STEPS=['Inicio','Personal','Equipos','Tareas y tiempos','Cierre'];
-const STEP_OF={Inicio:0,Personal:1,Equipos:2,Tareas:3,Cierre:4};
+const STEPS=['Inicio','Personal y equipos','Tareas y tiempos','Cierre'];
+const STEP_OF={Inicio:0,Personal:1,Equipos:1,Tareas:2,Cierre:3};
+const STEP_SEC=[['Inicio'],['Personal','Equipos'],['Tareas'],['Cierre']];
+const ORDS=[[0,'Sin orden'],[1,'1º'],[2,'2º'],[3,'3º'],[4,'4º'],[5,'5º']];
 
 /* Librerías que se cargan solo cuando hacen falta (PDF y Excel) */
 const LIBS={

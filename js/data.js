@@ -70,7 +70,7 @@ function seedHab(){const R=dRel,H={},DV={AUP:R(177),GEN:R(102),CDO:R(76)};
 const P0=()=>stamp(dRel(-10),'16:10');
 function seedTrabajos(){
   const T=[],R=dRel;
-  const add=o=>{const t=Object.assign({prio:'media',ptw:false,ind:'',sup:'Pablo Ortiz',rt:'Martín Sosa',cierre:null,ext:null,hist:[{t:P0(),who:'Laura Méndez',a:'Planificado',c:''}]},o);
+  const add=o=>{const t=Object.assign({prio:'media',ptw:false,orden:0,hora:'',ind:'',sup:'Pablo Ortiz',rt:'Martín Sosa',cierre:null,ext:null,hist:[{t:P0(),who:'Laura Méndez',a:'Planificado',c:''}]},o);
     t.imp=t.imp||CONTRATOS0[t.ct].imps[0][0];t.pers=t.pers||CREW[t.rec].slice();t.eqs=t.eqs||VEH[t.rec].slice();T.push(t)};
   add({id:'PL-090',ct:'CT-AUP-017',imp:'AUP-4110-OPEX-01',rec:'C-03',yac:'El Trébol',pozo:'ET-1098',inicio:R(-6),dias:4,ptw:true,prev:['Montaje de línea de conducción']});
   add({id:'PL-106',ct:'CT-AUP-021',rec:'CM-22',yac:'El Trébol',pozo:'Playa de materiales',inicio:R(-6),dias:3,prev:['Traslado de cañería','Transporte de agua']});
@@ -78,7 +78,8 @@ function seedTrabajos(){
   add({id:'PL-094',ct:'CT-CDO-003',rec:'C-05',yac:'Cañadón Perdido',pozo:'CP-77',inicio:R(-3),dias:3,prev:['Zanjeo manual'],sup:'Natalia Vera'});
   add({id:'PL-096',ct:'CT-GEN-008',rec:'HG-14',yac:'Diadema',pozo:'DI-311',inicio:R(-3),dias:1,ptw:true,prev:['Izaje de bombeador']});
   add({id:'PL-091',ct:'CT-GEN-011',rec:'C-03',yac:'Diadema',pozo:'DI-408',inicio:R(-2),dias:1,ptw:true,prev:['Zanjeo manual','Desmalezado']});
-  add({id:'PL-092',ct:'CT-AUP-017',imp:'AUP-4110-CAPEX-07',rec:'C-03',yac:'El Trébol',pozo:'Batería ET-B3',inicio:TODAY,dias:5,prio:'alta',ptw:true,prev:['Limpieza de locación','Montaje de línea de conducción','Movimiento de suelo'],ind:'Ingresar por picada 14. El supervisor de AUP firma el permiso en la batería a las 07:30.'});
+  add({id:'PL-092',ct:'CT-AUP-017',imp:'AUP-4110-CAPEX-07',rec:'C-03',yac:'El Trébol',pozo:'Batería ET-B3',inicio:TODAY,dias:5,prio:'alta',ptw:true,orden:1,hora:'07:30',prev:['Limpieza de locación','Montaje de línea de conducción','Movimiento de suelo'],ind:'Ingresar por picada 14. El supervisor de AUP firma el permiso en la batería a las 07:30.'});
+  add({id:'PL-107',ct:'CT-AUP-017',imp:'AUP-4110-OPEX-01',rec:'C-03',yac:'El Trébol',pozo:'ET-1102',inicio:TODAY,dias:1,orden:2,hora:'15:00',prev:['Desmalezado'],ind:'Desmalezar el acceso a la locación al terminar en la batería.'});
   add({id:'PL-097',ct:'CT-GEN-008',imp:'GEN-7302-PM-12',rec:'HG-14',yac:'Diadema',pozo:'DI-415',inicio:TODAY,dias:2,ptw:true,prev:['Izaje de bombeador']});
   add({id:'PL-095',ct:'CT-CDO-003',imp:'CDO-5120-HSE-02',rec:'C-05',yac:'Cañadón Perdido',pozo:'Batería CP-B3',inicio:TODAY,dias:2,prio:'urg',ptw:true,prev:['Retiro de residuos'],ind:'Derrame menor en batería 3: retirar suelo afectado a repositorio.',sup:'Natalia Vera',eqs:['PU-52','CA-05']});
   add({id:'PL-098',ct:'CT-AUP-021',rec:'CM-22',yac:'El Trébol',pozo:'Playa de materiales',inicio:R(1),dias:3,prev:['Traslado de cañería','Transporte de agua']});
@@ -92,7 +93,7 @@ function seedTrabajos(){
   return T;
 }
 const unit0=(ct,d)=>((CTS[ct].tareas.find(x=>x[0]===d))||[0,''])[1];
-function snap(t,fecha){const cc=(S&&S.contratos&&S.contratos[t.ct])||CTS[t.ct]||{};return {pl:t.id,dia:diffD(t.inicio,fecha),fecha,ct:t.ct,imp:t.imp,op:cc.op,cc:t.cc||cc.cc,ccn:t.ccn||cc.ccn,yac:t.yac||'',pozo:t.pozo,rec:t.rec,prio:t.prio,ptw:t.ptw,prev:t.prev.slice(),ind:t.ind,sup:t.sup,rt:t.rt,pers:t.pers.slice(),eqs:t.eqs.slice()}}
+function snap(t,fecha){const cc=(S&&S.contratos&&S.contratos[t.ct])||CTS[t.ct]||{};return {pl:t.id,dia:diffD(t.inicio,fecha),fecha,ct:t.ct,imp:t.imp,op:cc.op,cc:t.cc||cc.cc,ccn:t.ccn||cc.ccn,yac:t.yac||'',pozo:t.pozo,rec:t.rec,prio:t.prio,ptw:t.ptw,orden:t.orden||0,hora:t.hora||'',prev:t.prev.slice(),ind:t.ind,sup:t.sup,rt:t.rt,pers:t.pers.slice(),eqs:t.eqs.slice()}}
 function genEjec(t,fecha){
   const i=diffD(t.inicio,fecha),g=diffD(dRel(-7),fecha),op=CTS[t.ct].op;
   const Q={'m²':[350,60],'m':[45,9],'m³':[18,5],'t':[14,2],'viaje':[3,1],'maniobra':[2,0],'h':[8,0],'km':[60,10],'unidad':[4,1],'día':[1,0]};
@@ -105,7 +106,7 @@ function genEjec(t,fecha){
   return {check:{charla:true,epp:true},llegada:'07:40',
     permiso:t.ptw?{num:'PT-'+op+'-'+(4400+Math.abs(g)*3),firmo:OPSUP[op],hora:'07:30'}:null,
     clima:{t:String(8+Math.abs(g*3)%9),v:String(22+Math.abs(g*7)%20),r:String(38+Math.abs(g*11)%20),dir:['O','SO','NO','O'][Math.abs(g)%4],cond:['Despejado','Nublado parcial','Ventoso','Despejado'][Math.abs(g)%4],src:'app',at:'07:3'+(Math.abs(g)%10)},
-    personal:t.pers.map(nm=>({n:nm,rol:ROLEP[nm]||'Operario',base:'06:30',zona:'07:40',out:'18:30',pres:true})),
+    personal:t.pers.map(nm=>({n:nm,rol:ROLEP[nm]||'Operario',pres:true,ini:'',fin:''})),
     equipos:t.eqs.map((c,k)=>({c,km:String((KM0[c]??20000+k*5000)+(g+7)*70+62+k*8),obs:''})),
     reg,obs:'',fotos:[],firma:'seed'};
 }
@@ -126,26 +127,26 @@ function seed(){
   const O={
     ['PL-090|'+R(-3)]:['apr',p=>{p.cierreObs='Línea de 4 pulgadas montada y probada. Locación entregada limpia.'}],
     ['PL-093|'+R(-2)]:'apr',['PL-094|'+R(-2)]:'apr',
-    ['PL-093|'+R(-1)]:['env',p=>{const e=p.ejec;e.personal.forEach((x,k)=>{x.base='06:15';x.zona='07:20';x.out=k?'18:30':'19:10'});
+    ['PL-093|'+R(-1)]:['env',p=>{const e=p.ejec;e.llegada='07:20';e.personal[0].fin='18:40';
       e.reg=[{c:'tr',de:'06:30',a:'07:20',d:'Base → Escalante',q:'',u:'',det:''},{c:'op',de:'07:20',a:'10:00',d:'Desmalezado',q:'1200',u:'m²',det:'Sector sur y accesos'},{c:'es',de:'10:00',a:'11:30',d:'Permiso de trabajo',q:'',u:'',det:'Supervisor AUP llegó 11:25'},{c:'op',de:'11:30',a:'13:00',d:'Armado de cerco perimetral',q:'30',u:'m',det:'Lado norte'},{c:'rf',de:'13:00',a:'13:30',d:'',q:'',u:'',det:''},{c:'op',de:'13:30',a:'18:20',d:'Armado de cerco perimetral',q:'55',u:'m',det:'Lado este'},{c:'tr',de:'18:20',a:'19:10',d:'Regreso a base',q:'',u:'',det:''}];
       e.permiso.hora='11:25';
       e.obs='Demora de 1 h 30 en el ingreso: el supervisor de AUP llegó a firmar el permiso a las 11:25.';
       e.fotos=[{cap:'Cerco lado norte'},{cap:'Locación desmalezada'}];e.clima={t:'13',v:'30',r:'48',dir:'O',cond:'Nublado parcial',src:'app',at:'07:24'};
       p.fin='ext';p.ext={dias:1,motivo:'La operadora pidió ampliar el cerco al sector de tanques (40 m más).'}}],
-    ['PL-094|'+R(-1)]:['env',p=>{const e=p.ejec;e.personal.forEach(x=>x.out='18:00');
+    ['PL-094|'+R(-1)]:['env',p=>{const e=p.ejec;e.llegada='07:45';
       e.reg=[{c:'tr',de:'06:45',a:'07:45',d:'Base → CP-77',q:'',u:'',det:''},{c:'op',de:'07:45',a:'12:00',d:'Zanjeo manual',q:'38',u:'m',det:'Tramo batería 2 a satélite 5'},{c:'vi',de:'12:00',a:'13:30',d:'',q:'72',u:'km/h',det:'Personal resguardado en el vehículo'},{c:'op',de:'13:30',a:'17:15',d:'Zanjeo manual',q:'26',u:'m',det:'Tramo satélite 5'},{c:'tr',de:'17:15',a:'18:00',d:'Regreso a base',q:'',u:'',det:''}];
       e.obs='Ráfagas de 72 km/h entre 12:00 y 13:30. Se suspendió el trabajo y se resguardó al personal en el vehículo.';e.fotos=[{cap:'Zanja tramo 1'}];
       e.clima={t:'11',v:'44',r:'72',dir:'SO',cond:'Ventoso',src:'app',at:'07:41'};p.cierreObs='Zanja terminada (64 m en total del día). Falta tapado, queda para otra orden.'}],
-    ['PL-091|'+R(-2)]:['obs',p=>{const e=p.ejec;e.personal[1].out='';
+    ['PL-091|'+R(-2)]:['obs',p=>{const e=p.ejec;e.llegada='07:50';
       e.reg=[{c:'tr',de:'06:45',a:'07:50',d:'Base → DI-408',q:'',u:'',det:''},{c:'op',de:'07:50',a:'12:30',d:'Zanjeo manual',q:'',u:'m',det:''},{c:'es',de:'12:30',a:'13:15',d:'Responsable Operadora',q:'',u:'',det:'Habilitación del tramo 2'},{c:'rf',de:'13:15',a:'13:45',d:'',q:'',u:'',det:''},{c:'op',de:'13:45',a:'16:00',d:'Desmalezado',q:'800',u:'m²',det:''},{c:'op',de:'16:00',a:'18:20',d:'Movimiento de suelo',q:'24',u:'m³',det:'Relleno de zanja tramo 1'},{c:'tr',de:'18:20',a:'19:00',d:'Regreso a base',q:'',u:'',det:''}];
       e.obs='Se esperó al supervisor de la operadora para habilitar el tramo 2 del zanjeo.';
       const c=`Cristian Paz tiene la habilitación de Golfo Energía vencida desde el ${fS(R(-7)).slice(0,5)}: no puede figurar como presente. Falta además la cantidad de zanjeo.`;
       p.dec={d:'obs',who:APROB,t:stamp(TODAY,'08:15'),com:c};p.hist.push({t:p.dec.t,who:APROB,a:'Devuelto con observaciones',c})}],
     ['PL-092|'+TODAY]:['curso',p=>{const e=p.ejec;e.check.epp=false;e.llegada='07:35';e.clima=null;e.firma=null;e.permiso={num:'',firmo:'',hora:''};
-      e.personal.forEach(x=>{x.out=''});e.equipos.forEach(q=>q.km='');
+      e.equipos.forEach(q=>q.km='');
       e.reg=[{c:'tr',de:'06:45',a:'07:35',d:'Base → Batería ET-B3',q:'',u:'',det:''},{c:'op',de:'07:35',a:'10:10',d:'Limpieza de locación',q:'450',u:'m²',det:''},{c:'vi',de:'10:10',a:'11:00',d:'',q:'65',u:'km/h',det:''}]}],
-    ['PL-093|'+TODAY]:['curso',p=>{const e=p.ejec;e.firma=null;e.clima=null;e.personal.forEach(x=>{x.base='06:15';x.zona='07:15';x.out=''});e.equipos.forEach(q=>q.km='');e.reg=[{c:'tr',de:'06:30',a:'07:15',d:'Base → Escalante',q:'',u:'',det:''}];p.fin='sigue'}],
-    ['PL-097|'+TODAY]:['curso',p=>{const e=p.ejec;e.firma=null;e.clima=null;e.personal.forEach(x=>x.out='');e.equipos.forEach(q=>q.km='');e.reg=[{c:'tr',de:'06:45',a:'08:00',d:'Base → DI-415',q:'',u:'',det:''}]}]
+    ['PL-093|'+TODAY]:['curso',p=>{const e=p.ejec;e.firma=null;e.clima=null;e.llegada='07:15';e.equipos.forEach(q=>q.km='');e.reg=[{c:'tr',de:'06:30',a:'07:15',d:'Base → Escalante',q:'',u:'',det:''}];p.fin='sigue'}],
+    ['PL-097|'+TODAY]:['curso',p=>{const e=p.ejec;e.firma=null;e.clima=null;e.llegada='08:00';e.equipos.forEach(q=>q.km='');e.reg=[{c:'tr',de:'06:45',a:'08:00',d:'Base → DI-415',q:'',u:'',det:''}]}]
   };
   T.forEach(t=>{for(let i=0;i<t.dias;i++){const f=addDays(t.inicio,i);const o=O[t.id+'|'+f];
     if(f<TODAY||o){const est=Array.isArray(o)?o[0]:(o||'cert');P.push(mkParte(t,f,est,Array.isArray(o)?o[1]:null))}}});
@@ -167,12 +168,14 @@ function exampleSeed(){
     if(!pers.length)return;
     const eqs=((VEH[r.id]||[]).length?VEH[r.id]:c.eqs).slice(0,4);
     const ccl=c.ccs||[[c.cc,c.ccn]],ccM=ccl[ccMatch(c,r.id)];
-    const mk=(off,dias,k)=>{const cx=ccM||pk(ccl,k+ri);const t={id:'PL-'+(n++),ct,imp:pk(c.imps,k+ri)[0]||'',cc:cx[0],ccn:cx[1],rec:r.id,yac:'',pozo:pk(c.ubic,ri+k)||'Ubicación a definir',inicio:addDays(TODAY,off),dias,prio:k===1&&ri%3===0?'alta':'media',ptw:ri%2===0,ind:'',sup:SUPS[0],rt:RTS[0],pers:pers.slice(),eqs:eqs.slice(),prev:c.tareas.slice(k%2,k%2+2).map(x=>x[0]),cierre:null,ext:null,hist:[{t:P0(),who:'Laura Méndez',a:'Planificado',c:''}]};
+    const mk=(off,dias,k,orden,hora)=>{const cx=ccM||pk(ccl,k+ri);const t={id:'PL-'+(n++),ct,imp:pk(c.imps,k+ri)[0]||'',cc:cx[0],ccn:cx[1],rec:r.id,yac:'',pozo:pk(c.ubic,ri+k)||'Ubicación a definir',inicio:addDays(TODAY,off),dias,prio:k===1&&ri%3===0?'alta':'media',ptw:ri%2===0,orden:orden||0,hora:hora||'',ind:'',sup:SUPS[0],rt:RTS[0],pers:pers.slice(),eqs:eqs.slice(),prev:c.tareas.slice(k%2,k%2+2).map(x=>x[0]),cierre:null,ext:null,hist:[{t:P0(),who:'Laura Méndez',a:'Planificado',c:''}]};
       if(!t.prev.length&&c.tareas.length)t.prev=[c.tareas[0][0]];if(!t.prev.length)return null;T.push(t);return t};
-    const a=mk(-6,3,0),b=mk(-1,4,1);mk(3,3,2);
+    const op=r.id===USERS.operador.rec;
+    const a=mk(-6,3,0),b=mk(-1,4,1,op?1:0,op?'07:30':'');mk(3,3,2);
+    if(op&&c.ubic.length>1)mk(0,1,3,2,'15:00');   // segundo trabajo del día para la cuadrilla del operador
     if(a)['cert','cert','apr'].forEach((e,i)=>P.push(mkParte(a,addDays(a.inicio,i),e)));
     if(b){P.push(mkParte(b,b.inicio,'env'));
-      if(r.id===USERS.operador.rec)P.push(mkParte(b,TODAY,'curso',p=>{const e=p.ejec;e.firma=null;e.clima=null;e.personal.forEach(x=>x.out='');e.equipos.forEach(q=>q.km='');e.reg=e.reg.slice(0,2);if(e.permiso)e.permiso={num:'',firmo:'',hora:''}}))}
+      if(op)P.push(mkParte(b,TODAY,'curso',p=>{const e=p.ejec;e.firma=null;e.clima=null;e.equipos.forEach(q=>q.km='');e.reg=e.reg.slice(0,2);if(e.permiso)e.permiso={num:'',firmo:'',hora:''}}))}
   });
   P.sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.rec.localeCompare(b.rec));
   P.forEach((p,i)=>p.id='PD-'+String(500+i).padStart(4,'0'));

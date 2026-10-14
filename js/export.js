@@ -11,7 +11,7 @@ const whenX=t=>{const m=String(t||'').match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/
 const SEEDSIG=[[20,60],[40,20,60,20,62,52],[74,84,90,80,104,40],[112,18,128,24,122,58],[118,78,150,30,170,44],[190,58,210,70,228,36],[236,22,250,30,280,40]];
 function pdfSig(doc,f,x,y,w,h){if(!f)return;if(f==='seed'){doc.setDrawColor(20,32,42);doc.setLineWidth(.5);const sx=w/300,sy=h/90;let px=x+SEEDSIG[0][0]*sx,py=y+SEEDSIG[0][1]*sy;SEEDSIG.slice(1).forEach(q=>{const nx=x+q[4]*sx,ny=y+q[5]*sy;doc.line(px,py,nx,ny);px=nx;py=ny});doc.setLineWidth(.2);return}try{doc.addImage(f,'PNG',x,y,w,h)}catch(er){}}
 const PDF_INK=[20,32,42],PDF_ACC=[182,90,11],PDF_BAND=[19,33,44],PDF_ORG=[240,138,36];
-function buildPdf(p){
+function buildPdf(p,fotos){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
   const W=210,M=14,e=p.ejec,t=trab(p.pl),c=CT(p.ct),s=sums(p);
   const cl=x=>String(x??'').replace(/[–—]/g,'-').replace(/→/g,'->');
@@ -32,7 +32,7 @@ function buildPdf(p){
   const w=e.clima,pm=e.permiso;
   kv([['Temperatura',w&&w.t!==''?w.t+' °C':'-','Viento / ráfagas',w?`${w.v||'-'} / ${w.r||'-'} km/h ${w.dir}`:'-'],['Condición',w?w.cond:'-','Fuente',w?(w.src==='app'?(w.fuente||'App de clima')+' '+(w.at||''):'Carga manual'):'-'],['Permiso operadora',p.ptw?(pm&&pm.num?pm.num:'Falta'):'No requiere','Firmó',p.ptw&&pm&&pm.firmo?`${pm.firmo} · ${pm.hora}`:'-'],['Charla de seguridad',e.check.charla?'Sí':'No','EPP verificado',e.check.epp?'Sí':'No']]);
   sec(`Personal · ${s.pers} presentes · ${fmtH(s.hh)} hombre`);
-  tbl(['Persona','Rol','Ingreso base','Llegada zona','Salida','Horas','Habilitación'],e.personal.map(x=>[x.n,x.rol,x.pres?x.base||'-':'Ausente',x.pres?x.zona||'-':'',x.pres?x.out||'-':'',x.pres&&x.base&&x.out?fmtH(dur(x.base,x.out)):'-',habTxt(hab(x.n,p.op,p.fecha))]));
+  tbl(['Persona','Rol','Inicio','Fin','Horas','Habilitación'],e.personal.map(x=>[x.n,x.rol,x.pres?pIni(e,x)||'-':'Ausente',x.pres?pFin(e,x)||'-':'',x.pres&&pDur(e,x)?fmtH(pDur(e,x))+(pManual(x)?' (ajustado)':''):'-',habTxt(hab(x.n,p.op,p.fecha))]));
   sec(`Equipos · ${num(s.km)} km`);
   tbl(['Equipo','Km actual','Recorrido','Observación','Habilitación'],e.equipos.map(q=>{const pk=lastKm(q.c,p);return [`${q.c} ${EQ[q.c]}`,q.km===''?'-':num(q.km),q.km!==''&&pk!==null?num(q.km-pk)+' km':'-',q.obs||'-',habTxt(hab(q.c,p.op,p.fecha))]}));
   sec('Producción del día');
@@ -56,7 +56,7 @@ function buildPdf(p){
   y=by+40;doc.setTextColor(...PDF_INK);
   sec('Historial');
   tbl(['Fecha','Persona','Acción','Comentario'],p.hist.map(x=>[whenX(x.t),x.who,x.a,x.c||'']),{columnStyles:{0:{cellWidth:26},1:{cellWidth:42},2:{cellWidth:44}}});
-  const ph=e.fotos.filter(f=>f.src);
+  const ph=e.fotos.map((f,i)=>({cap:f.cap,src:(fotos&&fotos[i])||f.src})).filter(f=>f.src);
   if(ph.length){doc.addPage();y=18;sec('Registro fotográfico');y+=2;ph.forEach((f,i)=>{const col=i%2,row=Math.floor(i/2)%3;if(i&&i%6===0){doc.addPage();y=20}const x=M+col*93,yy=y+row*76;try{doc.addImage(f.src,'JPEG',x,yy,88,64)}catch(er){}doc.setFontSize(8);doc.setTextColor(92,105,118);doc.text(cl(f.cap),x,yy+69)})}
   const n=doc.getNumberOfPages();
   for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(7.5);doc.setTextColor(137,148,160);doc.text(cl(`VDS Partes de campo · ${p.id} · generado el ${fDay(TODAY)} ${TODAY.slice(0,4)} ${hm()}`),M,290);doc.text(`Página ${i} de ${n}`,W-M,290,{align:'right'})}
@@ -65,7 +65,8 @@ function buildPdf(p){
 async function downloadPdf(id){
   const p=byId(id);if(!p||!p.ejec){toast('Este parte todavía no tiene datos para exportar');render();return}
   try{await loadLib('pdf')}catch(e){toast('No se pudo cargar el generador de PDF: '+e.message);render();return}
-  let blob;try{blob=buildPdf(p)}catch(e){toast('No se pudo armar el PDF');render();return}
+  const fotos=await Promise.all(p.ejec.fotos.map(f=>fotoData(f).catch(()=>null)));
+  let blob;try{blob=buildPdf(p,fotos)}catch(e){toast('No se pudo armar el PDF');render();return}
   await saveBlob(blob,`${p.id}_${p.fecha}_${fname(p.pozo)}.pdf`,`PDF de ${p.id} descargado`);
 }
 async function saveBlob(blob,filename,okMsg){
@@ -95,7 +96,7 @@ async function exportDash(){
     rP.push([p.id,xd(p.fecha),EST[p.estado],p.ct,p.imp,impN(p.ct,p.imp),`${p.cc} · ${p.ccn||CT(p.ct).ccn}`,locOf(p),p.pl,p.dia+1,recOf(p.rec).n,s.pers,h2(s.hh),h2(s.byc.op||0),h2(s.byc.tr||0),h2(s.byc.es||0),h2(s.byc.vi||0),h2(s.byc.sb||0),h2(s.byc.rf||0),s.km,p.dec&&p.dec.d==='ok'?p.dec.who:'',p.dec&&p.dec.d==='ok'?whenX(p.dec.t):'',p.cert?p.cert.who:'',p.cert?whenX(p.cert.t):'']);
     prod(p).forEach(x=>{rPr.push([p.id,xd(p.fecha),p.ct,p.imp,locOf(p),x.d,x.q,x.u,p.prev.includes(x.d)?'Prevista':inCat(p.ct,x.d)?'Adicional':'Fuera de catálogo']);const k=x.d+'|'+x.u;pr[k]=pr[k]||{d:x.d,u:x.u,q:0};pr[k].q+=x.q});
     e.reg.slice().sort((a,b)=>(mins(a.de)??0)-(mins(b.de)??0)).forEach(x=>rT.push([p.id,xd(p.fecha),p.imp,TCAT[x.c],x.de,x.a,h2(dur(x.de,x.a)),x.d||'',(x.c==='op'||x.c==='vi')&&Number(x.q)>0?Number(x.q):'',x.c==='vi'?'km/h':x.c==='op'?x.u:'',x.det||'']));
-    e.personal.forEach(x=>rPe.push([p.id,xd(p.fecha),p.imp,x.n,x.rol,x.pres?'Sí':'No',x.pres?x.base:'',x.pres?x.zona:'',x.pres?x.out:'',x.pres&&x.base&&x.out?h2(dur(x.base,x.out)):'']));
+    e.personal.forEach(x=>rPe.push([p.id,xd(p.fecha),p.imp,x.n,x.rol,x.pres?'Sí':'No',x.pres?pIni(e,x):'',x.pres?pFin(e,x):'',x.pres?h2(pDur(e,x)):'',x.pres?(pManual(x)?'A mano':'Automático'):'']));
     e.equipos.forEach(q=>{const pk=lastKm(q.c,p);rE.push([p.id,xd(p.fecha),p.imp,q.c,EQ[q.c],q.km===''?'':Number(q.km),q.km!==''&&pk!==null?Number(q.km)-pk:'',q.obs||''])})});
   const impCt=impF==='all'?null:(ps.find(p=>p.imp===impF)||{}).ct||ctF;
   const res=[['Vientos del Sur · Partes de campo'],[],['Cliente',OPS[op]],['Contrato',ctF==='all'?'Todos':`${ctF} · ${CT(ctF).n}`],['Imputación',impF==='all'?'Todas':impL(impCt,impF)],['Desde',xd(S.dfrom||first)],['Hasta',xd(S.dto||last)],['Partes incluidos','Aprobados por VDS y certificados'],['Generado',`${fS(TODAY)} ${hm()} por ${meN()}`],[],
@@ -106,7 +107,7 @@ async function exportDash(){
     ['Partes',[['Nº parte','Fecha','Estado','Contrato','Imputación','Descripción imputación','Centro de costo','Ubicación','Trabajo','Día','Recurso','Personas','Horas hombre','Horas operativas','Traslado (h)','Espera operadora (h)','Parada por viento (h)','Standby (h)','Refrigerio (h)','Km','Aprobado por','Aprobación','Certificado por','Certificación'],...rP],[10,11,14,14,22,30,26,30,8,5,16,9,11,11,10,12,12,10,10,8,16,14,26,14]],
     ['Producción',[['Nº parte','Fecha','Contrato','Imputación','Ubicación','Tarea','Cantidad','Unidad','Origen'],...rPr],[10,11,14,22,22,30,10,9,16]],
     ['Tiempos',[['Nº parte','Fecha','Imputación','Categoría','Desde','Hasta','Horas','Tarea / motivo','Cantidad','Unidad','Detalle'],...rT],[10,11,22,18,7,7,7,30,9,8,30]],
-    ['Personal',[['Nº parte','Fecha','Imputación','Persona','Rol','Presente','Ingreso base','Llegada zona','Salida','Horas'],...rPe],[10,11,22,22,20,9,11,11,8,7]],
+    ['Personal',[['Nº parte','Fecha','Imputación','Persona','Rol','Presente','Inicio','Fin','Horas','Horario'],...rPe],[10,11,22,22,20,9,8,8,7,11]],
     ['Equipos',[['Nº parte','Fecha','Imputación','Equipo','Descripción','Km actual','Recorrido km','Observación'],...rE],[10,11,22,10,24,11,12,30]]];
   logA('Exportación a Excel del dashboard',ctF==='all'?OPS[op]:ctF,`${ps.length} partes · ${fS(S.dfrom||first)} a ${fS(S.dto||last)}${impF!=='all'?' · '+impF:''}`,'','export');
   saveBlob(xlsxBlob(sheets),`VDS_${fname(op)}_${fname(ctF==='all'?'todos':ctF)}_${fname(impF==='all'?'todas':impF)}_${S.dfrom||first}_${S.dto||last}.xlsx`,`Excel descargado · ${ps.length} partes`);

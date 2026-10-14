@@ -3,14 +3,14 @@ const saludo=()=>{const h=new Date().getHours();return h<13?'Buen día':h<20?'Bu
 function vDay(){
   const R=USERS.operador.rec;
   const obs=S.partes.filter(p=>p.rec===R&&p.estado==='obs');
-  const hoy=S.trabajos.filter(t=>t.rec===R&&covers(t,TODAY)&&!t.cierre).map(t=>({t,p:parteOf(t.id,TODAY)})).filter(x=>!x.p||x.p.estado==='curso');
+  const hoy=S.trabajos.filter(t=>t.rec===R&&covers(t,TODAY)&&!t.cierre).sort(byOrd).map(t=>({t,p:parteOf(t.id,TODAY)})).filter(x=>!x.p||x.p.estado==='curso');
   const prox=S.trabajos.filter(t=>t.rec===R&&t.inicio>TODAY).sort((a,b)=>a.inicio.localeCompare(b.inicio));
   const env=S.partes.filter(p=>p.rec===R&&['env','apr','cert'].includes(p.estado)).sort((a,b)=>b.fecha.localeCompare(a.fecha)||b.id.localeCompare(a.id));
   const meta=x=>`<div class="meta"><span>${ic('pin')}${esc(locOf(x))}</span><span>${esc(OPS[CT(x.ct).op])} · <span class="mono">${esc(x.ct)}</span></span><span>${ic('users')}${(x.pers||[]).length} personas · ${esc((x.eqs||[]).join(', '))}</span></div>`;
   const cards=[...obs.map(p=>`<div class="tcard obs"><div><div class="t1"><span class="mono">${p.id}</span>${pill(p.estado)}<span class="sm">${fDay(p.fecha)}</span></div><h4>${p.prev.map(esc).join(' · ')}</h4>${meta(p)}</div><div><button class="btn pri lg" data-a="o-open" data-id="${p.id}">Corregir parte</button></div>${p.dec?`<div class="vnote">${ic('back')}<div><b>Observado por ${esc(p.dec.who)} · ${esc(when(p.dec.t))}</b>${esc(p.dec.com)}</div></div>`:''}</div>`),
     ...hoy.map(({t,p})=>{const i=diffD(t.inicio,TODAY);const last=i===t.dias-1;
     const act=p?`<button class="btn pri lg" data-a="o-open" data-id="${p.id}">Continuar ${ic('right')}</button>`:`<button class="btn pri lg" data-a="o-start" data-pl="${t.id}">Iniciar parte ${ic('right')}</button>`;
-    return `<div class="tcard${p?' cur':''}"><div><div class="t1">${p?`<span class="mono">${p.id}</span>`:''}${pill(p?p.estado:'plan')}${prioB(t.prio)}${ptTag(t.ptw)}<span class="tag">${t.id} · día ${i+1} de ${t.dias}${last?' · último':''}</span></div><h4>${t.prev.map(esc).join(' · ')}</h4>${meta(t)}</div><div>${act}</div>${p?`<div class="prog" aria-label="Avance del parte">${STEPS.map((s,k)=>`<i class="${stepOk(p,k)?'on':''}" title="${s}"></i>`).join('')}</div>`:''}${t.ind?`<div class="vnote n">${ic('pin')}<div>${esc(t.ind)}</div></div>`:''}${t.ext?`<div class="vnote n">${ic('flag')}<div>Pediste ${t.ext.dias} día(s) más · esperando aprobación de planificación</div></div>`:''}</div>`})];
+    return `<div class="tcard${p?' cur':''}"><div><div class="t1">${t.orden||t.hora?`<span class="tag ordt">${ic('clock')}${esc(ordTxt(t))}</span>`:''}${p?`<span class="mono">${p.id}</span>`:''}${pill(p?p.estado:'plan')}${prioB(t.prio)}${ptTag(t.ptw)}<span class="tag">${t.id} · día ${i+1} de ${t.dias}${last?' · último':''}</span></div><h4>${t.prev.map(esc).join(' · ')}</h4>${meta(t)}</div><div>${act}</div>${p?`<div class="prog" aria-label="Avance del parte">${STEPS.map((s,k)=>`<i class="${stepOk(p,k)?'on':''}" title="${s}"></i>`).join('')}</div>`:''}${t.ind?`<div class="vnote n">${ic('pin')}<div>${esc(t.ind)}</div></div>`:''}${t.ext?`<div class="vnote n">${ic('flag')}<div>Pediste ${t.ext.dias} día(s) más · esperando aprobación de planificación</div></div>`:''}</div>`})];
   return `<div class="hero-op"><div><h2>${saludo()}, ${esc(USERS.operador.n.split(' ')[0])}</h2><p>${esc(recOf(R).n)} · ${fDayM(TODAY)}</p></div><div class="kchips">${kchip(hoy.length,'para hoy','var(--accent)')}${kchip(obs.length,'para corregir',obs.length?'var(--st-obs)':'var(--faint)')}${kchip(env.filter(p=>p.estado==='env').length,'en aprobación','var(--st-env)')}</div></div>
   <div class="opgrid fill">
     <section class="opmain" data-keep="v"><h3 class="sect">${obs.length?`<span style="color:var(--st-obs)">${ic('alert')}Para corregir y hoy</span>`:'Hoy'}</h3>${cards.join('')||'<div class="empty">No tenés trabajo pendiente para hoy.</div>'}</section>
@@ -27,11 +27,11 @@ function tin(bind,v,dis,lab){
   let hh='',mm='';if(mins(v)!==null)[hh,mm]=v.split(':');else if(tp){hh=tp.h;mm=tp.m}
   const ms=!mm||M5.includes(mm)?M5:[...M5,mm].sort();
   const L=esc(lab||'Hora'),D=dis?' disabled':'';
-  return `<span class="tpick"><select class="inp" id="${id}" data-tbind="${bind}" data-part="h" aria-label="${L}: hora"${D}><option value="">hh</option>${H24.map(h=>`<option${h===hh?' selected':''}>${h}</option>`).join('')}</select><span class="tcolon">:</span><select class="inp" id="${id}-m" data-tbind="${bind}" data-part="m" aria-label="${L}: minutos"${D}><option value="">mm</option>${ms.map(m=>`<option${m===mm?' selected':''}>${m}</option>`).join('')}</select></span>`;
+  return `<span class="tpick" data-v="${esc(v||'')}"><select class="inp" id="${id}" data-tbind="${bind}" data-part="h" aria-label="${L}: hora"${D}><option value="">hh</option>${H24.map(h=>`<option${h===hh?' selected':''}>${h}</option>`).join('')}</select><span class="tcolon">:</span><select class="inp" id="${id}-m" data-tbind="${bind}" data-part="m" aria-label="${L}: minutos"${D}><option value="">mm</option>${ms.map(m=>`<option${m===mm?' selected':''}>${m}</option>`).join('')}</select></span>`;
 }
 function vEdit(){
-  const p=cur(),st=S.step,e=p.ejec,c=CT(p.ct);
-  const body=[stInicio,stPersonal,stEquipos,stReg,stCierre][st](p,e);
+  const p=cur(),e=p.ejec,c=CT(p.ct);if(S.step>3)S.step=3;const st=S.step;
+  const body=[stInicio,stPersEq,stReg,stCierre][st](p,e);
   const ban=p.estado==='obs'&&p.dec?`<div class="banner" title="${esc(p.dec.com)}">${ic('back')}<div><b>Devuelto por ${esc(p.dec.who)} · ${esc(when(p.dec.t))}</b>${esc(p.dec.com)}</div></div>`:'';
   const admEdit=isAdm()&&!!UI.editSnap;
   const er=errs(p).length;
@@ -41,15 +41,18 @@ function vEdit(){
   <div class="edbody" data-keep="e">${ban}${body}</div>
   <div class="edfoot"><span class="saved${offline()?' off':''}">${ic(offline()?'nowifi':'cloud')}${offline()?'Guardado en la tablet · se envía al recuperar señal':'Guardado automático'}</span>
     ${st>0?`<button class="btn lg" data-a="o-step" data-i="${st-1}">${ic('left')}${STEPS[st-1]}</button>`:''}
-    ${st<4?`<button class="btn pri lg" data-a="o-step" data-i="${st+1}">${STEPS[st+1]} ${ic('right')}</button>`:last}
+    ${st<3?`<button class="btn pri lg" data-a="o-step" data-i="${st+1}">${STEPS[st+1]} ${ic('right')}</button>`:last}
   </div>`;
 }
 function stInicio(p,e){
   const tg=(k,t,s)=>`<button class="tog" data-a="o-check" data-k="${k}" aria-pressed="${e.check[k]}"><span class="bx">${ic('check')}</span><span>${t}<small>${s}</small></span></button>`;
   const cl=e.clima||{t:'',v:'',r:'',dir:'O',cond:'Despejado',src:''};
   const t=trab(p.pl),w=e.permiso||{num:'',firmo:'',hora:''};
+  const sel=(id,bind,opts,v)=>`<select class="inp" id="${id}" data-bind="${bind}" data-rr><option value=""${!v?' selected':''}>Elegir…</option>${opts.map(o=>`<option${o===v?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  const pl=trab(p.pl)||p;
   return `<div class="g3 fill">
-    <div class="pnl col"><h3>Lo planificado<span class="sp"></span>${prioB(p.prio)}</h3><div class="body"><dl class="kv kv1"><dt>Servicio</dt><dd>${esc(CT(p.ct).n)}</dd><dt>Imputación</dt><dd><span class="mono">${esc(p.imp||'—')}</span>${impN(p.ct,p.imp)?`<div class="sm">${esc(impN(p.ct,p.imp))}</div>`:''}</dd><dt>Trabajo</dt><dd><span class="mono">${p.pl}</span> · día ${p.dia+1} de ${t.dias} · ${fDay(t.inicio)} → ${fDay(tEnd(t))}</dd><dt>Ubicación</dt><dd>${esc(locOf(p))}</dd><dt>Tareas</dt><dd>${p.prev.map(x=>esc(x)+' <span class="sm">'+esc(unitOf(p.ct,x))+'</span>').join('<br>')}</dd>${p.ind?`<dt>Indicaciones</dt><dd>${esc(p.ind)}</dd>`:''}<dt>Resp. técnico</dt><dd>${esc(p.rt)}</dd></dl></div></div>
+    <div class="stack"><div class="pnl col fill"><h3>Lo planificado<span class="sp"></span>${prioB(p.prio)}</h3><div class="body"><dl class="kv kv1"><dt>Servicio</dt><dd>${esc(CT(p.ct).n)}</dd><dt>Imputación</dt><dd><span class="mono">${esc(p.imp||'—')}</span>${impN(p.ct,p.imp)?`<div class="sm">${esc(impN(p.ct,p.imp))}</div>`:''}</dd><dt>Trabajo</dt><dd><span class="mono">${p.pl}</span> · día ${p.dia+1} de ${t.dias} · ${fDay(t.inicio)} → ${fDay(tEnd(t))}</dd>${ordTxt(pl)?`<dt>En el día</dt><dd>${esc(ordTxt(pl))} <span class="sm">(guía, no obligatorio)</span></dd>`:''}<dt>Ubicación</dt><dd>${esc(locOf(p))}</dd><dt>Tareas</dt><dd>${p.prev.map((x,k)=>`<span class="sm">${k+1}.</span> ${esc(x)} <span class="sm">${esc(unitOf(p.ct,x))}</span>`).join('<br>')}</dd>${p.ind?`<dt>Indicaciones</dt><dd>${esc(p.ind)}</dd>`:''}</dl></div></div>
+      <div class="pnl"><h3>Responsables</h3><div class="grid2 g10"><div class="fld"><label for="p-sup">Supervisor</label>${sel('p-sup','p:sup',SUPS,p.sup)}</div><div class="fld"><label for="p-rt">Responsable técnico</label>${sel('p-rt','p:rt',RTS,p.rt)}</div></div></div></div>
     <div class="stack">
       <div class="pnl"><h3>${ic('clock')}Llegada a la instalación</h3><div class="fld"><label for="f-e-llegada">Hora de llegada</label>${tin('e:llegada',e.llegada,false,'Hora de llegada a la instalación')}</div></div>
       <div class="pnl"><h3>${ic('sign')}Permiso de trabajo de la operadora</h3>${p.ptw?`
@@ -74,28 +77,25 @@ function stInicio(p,e){
       <div class="pnl"><h3>Antes de empezar</h3><div class="togs">${tg('charla','Charla de seguridad de 5 minutos','Con todo el personal presente')}${tg('epp','EPP verificado','Casco, anteojos, guantes, calzado y ropa ignífuga')}</div></div>
     </div></div>`;
 }
-function stPersonal(p,e){
-  const used=new Set(e.personal.map(x=>x.n));
-  const rows=e.personal.map((x,i)=>{const d=x.base&&x.out?dur(x.base,x.out):0,z=x.zona&&x.out?dur(x.zona,x.out):0,h=hab(x.n,p.op,p.fecha);
-    return `<tr class="${x.pres?'':'off'}"><td class="w56"><button class="sw" role="switch" aria-checked="${x.pres}" aria-label="Presente: ${esc(x.n)}" data-a="o-pres" data-i="${i}"><span></span></button></td>
-    <td><b>${esc(x.n)}</b><div class="trow sm">${esc(x.rol)}${x.add?' · reemplazo':''} ${habChip(h)}</div></td><td class="w150">${tin(`e:personal.${i}.base`,x.base,!x.pres,'Ingreso a base de '+x.n)}</td><td class="w150">${tin(`e:personal.${i}.zona`,x.zona,!x.pres,'Llegada a zona de '+x.n)}</td><td class="w150">${tin(`e:personal.${i}.out`,x.out,!x.pres,'Salida de '+x.n)}</td>
-    <td class="num ${d>720?'warn':''}">${!x.pres?'Ausente':d?fmtH(d):'—'}${x.pres&&z?`<div class="sm">${fmtH(z)} en zona</div>`:''}</td><td class="w44">${x.add?`<button class="ibtn del" data-a="o-delp" data-i="${i}" aria-label="Quitar ${esc(x.n)}">${ic('trash')}</button>`:''}</td></tr>`}).join('');
-  const s=sums(p),cand=ALLP.filter(n=>!used.has(n)).map(n=>{const h=hab(n,p.op,p.fecha);return {v:n,t:n,s:(ROLEP[n]||'Operario')+' · '+homeOf(n),b:habChip(h),bad:habBad(h)}});
-  return `<div class="pnl col fill"><h3>${ic('users')}Personal<span class="sp"></span><span class="sm">${s.pers} presentes · ${fmtH(s.hh)} hombre · ${fmtH(s.hz)} en zona</span></h3>
-  <div class="body" data-keep="t"><table class="tbl sticky"><thead><tr><th>Presente</th><th>Persona y habilitación ${esc(OPS[p.op])}</th><th>Ingreso a base</th><th>Llegada a zona</th><th>Salida</th><th class="num">Horas</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-  <div class="pfoot"><button class="btn sm2" data-a="o-allz">${ic('clock')}Copiar horarios del primero a todos</button><div class="cbxw">${cbx('o-p','Sumar reemplazo: escribí el nombre',[['Habilitados',cand.filter(x=>!x.bad)],['Sin habilitación para '+OPS[p.op],cand.filter(x=>x.bad)]],'o-addp')}</div></div></div>
-  <p class="sm foot">Las horas se cuentan desde el ingreso a base. Si alguien no está habilitado para ${esc(OPS[p.op])}, marcalo ausente y sumá un reemplazo.</p>`;
-}
-function stEquipos(p,e){
-  const used=new Set(e.equipos.map(q=>q.c)),ceq=CT(p.ct).eqs||[];
-  const rows=e.equipos.map((q,i)=>{const pk=lastKm(q.c,p);const d=q.km!==''&&pk!==null?Number(q.km)-pk:null;
-    return `<tr><td><b class="mono">${esc(q.c)}</b> ${esc(EQ[q.c])}<div class="trow">${habChip(hab(q.c,p.op,p.fecha))}</div></td><td class="w170"><input class="inp${d!=null&&d<0?' soft':''}" type="number" inputmode="numeric" id="f-eq${i}" data-bind="e:equipos.${i}.km" data-rr value="${esc(q.km)}" placeholder="${pk!==null?num(pk):''}" aria-label="Km actual ${esc(q.c)}"><div class="sm">Último: ${pk!==null?num(pk):'—'}</div></td><td class="num w110 ${d!=null&&d<0?'warn':''}">${d==null?'—':num(d)+' km'}</td><td><input class="inp" id="f-eqo${i}" data-bind="e:equipos.${i}.obs" value="${esc(q.obs)}" placeholder="Fallas, combustible, novedades…" aria-label="Observación ${esc(q.c)}"></td><td class="w44"><button class="ibtn del" data-a="o-dele" data-i="${i}" aria-label="Quitar ${esc(q.c)}">${ic('trash')}</button></td></tr>`}).join('');
+/* Paso 2: personal y equipos juntos. En personal solo se marca quién está; los horarios se calculan en el cierre. */
+function stPersEq(p,e){
+  const usedP=new Set(e.personal.map(x=>x.n)),usedE=new Set(e.equipos.map(q=>q.c)),ceq=CT(p.ct).eqs||[];
+  const prow=e.personal.map((x,i)=>{const h=hab(x.n,p.op,p.fecha);
+    return `<div class="prow${x.pres?'':' off'}"><button class="sw" role="switch" aria-checked="${x.pres}" aria-label="Presente: ${esc(x.n)}" data-a="o-pres" data-i="${i}"><span></span></button><span class="nm"><b>${esc(x.n)}</b><small>${x.pres?esc(x.rol):'Ausente'}${x.add?' · reemplazo':''}</small></span>${habChip(h)}${x.add?`<button class="ibtn xs del" data-a="o-delp" data-i="${i}" aria-label="Quitar ${esc(x.n)}">${ic('trash')}</button>`:'<span class="w28"></span>'}</div>`}).join('');
+  const cand=ALLP.filter(n=>!usedP.has(n)).map(n=>{const h=hab(n,p.op,p.fecha);return {v:n,t:n,s:(ROLEP[n]||'Operario')+' · '+homeOf(n),b:habChip(h),bad:habBad(h)}});
+  const erow=e.equipos.map((q,i)=>{const pk=lastKm(q.c,p);const d=q.km!==''&&pk!==null?Number(q.km)-pk:null;
+    return `<tr><td><b class="mono">${esc(q.c)}</b> ${esc(EQ[q.c])}<div class="trow">${habChip(hab(q.c,p.op,p.fecha))}</div></td><td class="w130"><input class="inp${d!=null&&d<0?' soft':''}" type="number" inputmode="numeric" id="f-eq${i}" data-bind="e:equipos.${i}.km" data-rr value="${esc(q.km)}" placeholder="${pk!==null?num(pk):''}" aria-label="Km actual ${esc(q.c)}"><div class="sm">Último: ${pk!==null?num(pk):'—'}</div></td><td class="num w90 ${d!=null&&d<0?'warn':''}">${d==null?'—':num(d)+' km'}</td><td><input class="inp" id="f-eqo${i}" data-bind="e:equipos.${i}.obs" value="${esc(q.obs)}" placeholder="Fallas, combustible…" aria-label="Observación ${esc(q.c)}"></td><td class="w44"><button class="ibtn del" data-a="o-dele" data-i="${i}" aria-label="Quitar ${esc(q.c)}">${ic('trash')}</button></td></tr>`}).join('');
   const it=c=>({v:c,t:c+' · '+EQ[c],th:`<span class="mono">${esc(c)}</span> ${esc(EQ[c])}`,s:eqHome(c),b:habChip(hab(c,p.op,p.fecha))});
-  const free=Object.keys(EQ).filter(c=>!used.has(c));
-  return `<div class="pnl col fill"><h3>${ic('truck')}Equipos y vehículos<span class="sp"></span><span class="sm">${num(sums(p).km)} km desde el último registro</span></h3>
-  <div class="body" data-keep="t"><table class="tbl sticky"><thead><tr><th>Equipo y habilitación</th><th>Km / horómetro actual</th><th class="num">Recorrido</th><th>Observación</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5"><div class="empty">Agregá al menos un equipo.</div></td></tr>'}</tbody></table></div>
-  <div class="pfoot"><div class="cbxw">${cbx('o-e','Agregar equipo: escribí el interno o el tipo',[['Equipos del contrato',free.filter(c=>ceq.includes(c)).map(it)],['Otros equipos',free.filter(c=>!ceq.includes(c)).map(it)]],'o-adde')}</div></div></div>
-  <p class="sm foot">Cargá solo el km actual: el recorrido se calcula contra el último parte de ese equipo.</p>`;
+  const free=Object.keys(EQ).filter(c=>!usedE.has(c)),s=sums(p);
+  return `<div class="cols fill" style="grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)">
+    <div class="pnl col"><h3>${ic('users')}Personal<span class="sp"></span><span class="sm">${s.pers} presentes de ${e.personal.length}</span></h3>
+      <div class="body plist" data-keep="t">${prow||'<div class="empty">Sumá al menos una persona.</div>'}</div>
+      <div class="pfoot"><div class="cbxw">${cbx('o-p','Sumar reemplazo: escribí el nombre',[['Habilitados',cand.filter(x=>!x.bad)],['Sin habilitación para '+OPS[p.op],cand.filter(x=>x.bad)]],'o-addp')}</div></div></div>
+    <div class="pnl col"><h3>${ic('truck')}Equipos y vehículos<span class="sp"></span><span class="sm">${num(s.km)} km desde el último registro</span></h3>
+      <div class="body" data-keep="t2"><table class="tbl sticky"><thead><tr><th>Equipo y habilitación</th><th>Km / horómetro</th><th class="num">Recorrido</th><th>Observación</th><th></th></tr></thead><tbody>${erow||'<tr><td colspan="5"><div class="empty">Agregá al menos un equipo.</div></td></tr>'}</tbody></table></div>
+      <div class="pfoot"><div class="cbxw">${cbx('o-e','Agregar equipo: escribí el interno o el tipo',[['Equipos del contrato',free.filter(c=>ceq.includes(c)).map(it)],['Otros equipos',free.filter(c=>!ceq.includes(c)).map(it)]],'o-adde')}</div></div></div>
+  </div>
+  <p class="sm foot">Marcá quién está presente; si alguien no está habilitado para ${esc(OPS[p.op])}, marcalo ausente y sumá un reemplazo. Los horarios del personal se calculan solos con la llegada y los tramos del día, y se revisan en el cierre. De cada equipo cargá solo el km actual.</p>`;
 }
 function tbar(p){
   const e=p.ejec,W=SHW;
@@ -127,10 +127,13 @@ function stReg(p,e){
 }
 function stCierre(p,e){
   const c=checks(p),s=sums(p),t=trab(p.pl),lastDay=p.dia>=t.dias-1;
-  const list=c.length?c.map(([l,m,sec])=>`<div class="chk ${l}">${ic(l==='err'?'err':'alert')}<span>${esc(m)}</span>${sec!=='Cierre'?`<button class="go" data-a="o-step" data-i="${STEP_OF[sec]}">Ir a ${sec}</button>`:''}</div>`).join(''):`<div class="chk ok">${ic('okc')}<span>Todo completo. El parte está listo para enviar.</span></div>`;
+  const list=c.length?c.map(([l,m,sec])=>`<div class="chk ${l}">${ic(l==='err'?'err':'alert')}<span>${esc(m)}</span>${sec!=='Cierre'?`<button class="go" data-a="o-step" data-i="${STEP_OF[sec]}">Ir a ${STEPS[STEP_OF[sec]]}</button>`:''}</div>`).join(''):`<div class="chk ok">${ic('okc')}<span>Todo completo. El parte está listo para enviar.</span></div>`;
   const ne=c.filter(x=>x[0]==='err').length,nw=c.length-ne;
-  const fotos=e.fotos.map((f,i)=>`<div class="thumb${f.src?'':' ph'}">${f.src?`<img src="${f.src}" alt="${esc(f.cap)}">`:''}<span class="cap">${esc(f.cap)}</span><button class="x" data-a="o-delf" data-i="${i}" aria-label="Quitar foto">${ic('x')}</button></div>`).join('');
-  const sel=(id,bind,opts,v)=>`<select class="inp" id="${id}" data-bind="${bind}" data-rr><option value=""${!v?' selected':''}>Elegir…</option>${opts.map(o=>`<option${o===v?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  const ai=autoIni(e),af=autoFin(e);
+  const hrows=e.personal.map((x,i)=>{if(!x.pres)return '';const man=pManual(x),d=pDur(e,x);
+    return `<div class="hrow${man?' man':''}"><span class="nm"><b>${esc(x.n)}</b><small>${man?'Ajustado a mano':'Automático'}</small></span><span class="hl">Inicio</span>${tin(`e:personal.${i}.ini`,pIni(e,x),false,'Inicio de '+x.n)}<span class="hl">Fin</span>${tin(`e:personal.${i}.fin`,pFin(e,x),false,'Fin de '+x.n)}<b class="hh${d>720?' warn':''}">${d?fmtH(d):'—'}</b>${man?`<button class="ibtn xs" data-a="o-pauto" data-i="${i}" title="Volver al horario automático" aria-label="Volver al horario automático de ${esc(x.n)}">${ic('refresh')}</button>`:'<span class="w28"></span>'}</div>`}).join('');
+  const horario=`<div class="pnl hsum"><div class="hhead"><h3>${ic('clock')}Horario del personal</h3><span class="sm">${ai&&af?`De la llegada (${ai}) al último tramo en la locación (${af}). Si alguien llegó o se fue en otro horario, ajustalo.`:'Se calcula solo con la llegada y los tramos del día.'}</span><span class="sp"></span><span class="hstat"><b>${s.pers}</b> personas · <b>${fmtH(s.hh)}</b> hombre · <b>${fmtH(s.jor)}</b> registradas · <b>${num(s.km)}</b> km</span></div><div class="hgrid">${hrows||'<div class="sm">No hay personal presente.</div>'}</div></div>`;
+  const fotos=e.fotos.map((f,i)=>{const src=fotoSrc(f);return `<div class="thumb${src?'':' ph'}">${src?`<img src="${src}" alt="${esc(f.cap)}">`:''}<span class="cap">${esc(f.cap)}</span><button class="x" data-a="o-delf" data-i="${i}" aria-label="Quitar foto">${ic('x')}</button></div>`}).join('');
   const tt=trabTotals(t,p);
   const fin=`<div class="pnl"><h3>${ic('flag')}Al terminar el día<span class="sp"></span><span class="sm">${p.pl} · día ${p.dia+1} de ${t.dias}</span></h3>
     <div class="finseg"><button class="finopt" data-a="o-fin" data-v="sigue" aria-pressed="${p.fin==='sigue'}"${lastDay?' disabled':''}>Continúa mañana<small>${lastDay?'Es el último día':'Quedan '+(t.dias-p.dia-1)+' día(s)'}</small></button>
@@ -141,16 +144,15 @@ function stCierre(p,e){
       <div class="fld" style="margin-top:8px"><label for="f-cobs">Observación final del trabajo</label><textarea class="inp" id="f-cobs" data-bind="p:cierreObs" rows="2" placeholder="Cómo queda la locación, pendientes, conformidad del supervisor…">${esc(p.cierreObs)}</textarea></div>`:''}
     ${p.fin==='ext'?`<div class="extrow"><div class="fld"><span class="lab">Días extra</span><div class="stepper"><button data-a="o-extd" data-d="-1"${(p.ext.dias||1)<=1?' disabled':''} aria-label="Un día menos">−</button><b>${p.ext.dias} día${p.ext.dias>1?'s':''}</b><button data-a="o-extd" data-d="1" aria-label="Un día más">+</button></div></div><div class="fld"><label for="f-extm">Motivo</label><input class="inp${!p.ext.motivo.trim()?' bad':''}" id="f-extm" data-bind="p:ext.motivo" data-rr value="${esc(p.ext.motivo)}" placeholder="Qué falta y por qué"></div></div>`:''}
   </div>`;
-  return `<div class="stats">${[[s.pers,'Personas'],[fmtH(s.hh),'Horas hombre'],[fmtH(s.jor),'Tiempo registrado'],[num(s.km),'Km recorridos']].map(([b,l])=>`<div class="stat"><b>${b}</b><span>${l}</span></div>`).join('')}</div>
+  return `${horario}
   <div class="g3 fill">
-    <div class="stack"><div class="pnl col fill"><h3>Controles antes de enviar<span class="sp"></span>${ne?`<span class="flag err">${ne} pendiente${ne>1?'s':''}</span>`:`<span class="flag ok">${ic('check')}Se puede enviar</span>`}${nw?`<span class="flag warn">${nw} alerta${nw>1?'s':''}</span>`:''}</h3><div class="body" data-keep="c">${list}</div></div>
-      <div class="pnl"><h3>Responsables</h3><div class="grid2 g10"><div class="fld"><label for="p-sup">Supervisor responsable</label>${sel('p-sup','p:sup',SUPS,p.sup)}</div><div class="fld"><label for="p-rt">Responsable técnico</label>${sel('p-rt','p:rt',RTS,p.rt)}</div></div></div></div>
+    <div class="pnl col"><h3>Controles antes de enviar<span class="sp"></span>${ne?`<span class="flag err">${ne} pendiente${ne>1?'s':''}</span>`:`<span class="flag ok">${ic('check')}Se puede enviar</span>`}${nw?`<span class="flag warn">${nw} alerta${nw>1?'s':''}</span>`:''}</h3><div class="body" data-keep="c">${list}</div></div>
     <div class="stack scrolly" data-keep="c2">${fin}
       <div class="pnl"><h3>Observaciones del día</h3><textarea class="inp" id="f-obs" data-bind="e:obs" rows="3" placeholder="Demoras, incidentes, pedidos de la operadora…">${esc(e.obs)}</textarea></div>
     </div>
-    <div class="stack">
-      <div class="pnl"><h3>${ic('cam')}Fotos<span class="sp"></span><span class="sm">${e.fotos.length}</span></h3><div class="thumbs">${fotos}<label class="upl">${ic('cam')}Agregar foto<input type="file" accept="image/*" multiple id="f-fotos"></label></div></div>
-      <div class="pnl"><h3>${ic('sign')}Firma del jefe de cuadrilla<span class="sp"></span><span class="sm">${esc(jefeP(p))}</span></h3><div class="sigwrap"><canvas class="sig" data-sig="op" width="760" height="300" aria-label="Firmá con el dedo"></canvas>${e.firma?`<button class="ibtn del" data-a="o-sigclear" aria-label="Borrar firma">${ic('trash')}</button>`:'<span class="hint">Firmá con el dedo dentro del recuadro</span>'}</div></div>
+    <div class="stack scrolly" data-keep="c3">
+      <div class="pnl"><h3>${ic('cam')}Fotos<span class="sp"></span><span class="sm">${e.fotos.length?e.fotos.length+' en el parte':'Opcional'}</span></h3><div class="thumbs t4" data-keep="f">${fotos}<label class="upl">${ic('cam')}Sacar foto<input type="file" accept="image/*" capture="environment" class="f-foto"></label><label class="upl">${ic('plus')}Desde la galería<input type="file" accept="image/*" multiple class="f-foto"></label></div></div>
+      <div class="pnl"><h3>${ic('sign')}Firma del jefe de cuadrilla<span class="sp"></span><span class="sm">${esc(jefeP(p))}</span></h3><div class="sigwrap"><canvas class="sig mid" data-sig="op" width="760" height="260" aria-label="Firmá con el dedo"></canvas>${e.firma?`<button class="ibtn del" data-a="o-sigclear" aria-label="Borrar firma">${ic('trash')}</button>`:'<span class="hint">Firmá con el dedo dentro del recuadro</span>'}</div></div>
     </div>
   </div>`;
 }

@@ -76,6 +76,7 @@ scr.addEventListener('keydown',e=>{
 
 /* ---------- clics, cambios y envíos ---------- */
 scr.addEventListener('click',ev=>{
+  if(Date.now()<noClick){ev.preventDefault();return}
   const t=ev.target.closest('[data-a]');
   if(UI.reqs&&!ev.target.closest('.popw')){UI.reqs=false;if(!t){render();return}}
   if(t&&!t.disabled&&scr.contains(t)){ev.preventDefault();const f=A[t.dataset.a];if(f){cbClose();f(t.dataset)}}
@@ -89,7 +90,7 @@ scr.addEventListener('change',ev=>{
   if(ev.target.type==='file'){onFiles(ev.target);return}
   if(ev.target.closest&&ev.target.closest('.cbx'))return;
   if(ev.target.dataset&&ev.target.dataset.tbind){
-    const path=ev.target.dataset.tbind,cv=getBind(path);let h='',m='';
+    const tp=ev.target.closest('.tpick'),path=ev.target.dataset.tbind,cv=getBind(path)||(tp&&tp.dataset.v)||'';let h='',m='';
     if(mins(cv)!==null)[h,m]=cv.split(':');else if(UI.tp[path]){h=UI.tp[path].h;m=UI.tp[path].m}
     if(ev.target.dataset.part==='h')h=ev.target.value;else m=ev.target.value;
     if(h&&!m&&ev.target.dataset.part==='h')m='00';
@@ -138,6 +139,37 @@ const endDrag=()=>{
   render();
 };
 scr.addEventListener('pointerup',endDrag);scr.addEventListener('pointercancel',endDrag);
+
+/* ---------- calendario (por recurso y mes): arrastrar un trabajo a otro día ---------- */
+let cdrag=null,noClick=0;
+scr.addEventListener('pointerdown',ev=>{
+  const chip=ev.target.closest('.drg[data-id]');if(!chip||!canPlan())return;
+  const cell=chip.closest('[data-d]');if(!cell)return;
+  cdrag={chip,t:trab(chip.dataset.id),from:cell.dataset.d,rec:cell.dataset.rec||null,x0:ev.clientX,y0:ev.clientY,moved:false,ghost:null,tgt:null};
+});
+scr.addEventListener('pointermove',ev=>{
+  const g=cdrag;if(!g)return;
+  if(!g.moved){if(Math.hypot(ev.clientX-g.x0,ev.clientY-g.y0)<8)return;g.moved=true;
+    const r=g.chip.getBoundingClientRect();g.dx=(ev.clientX-r.left)/SCALE;g.dy=(ev.clientY-r.top)/SCALE;
+    g.ghost=g.chip.cloneNode(true);g.ghost.classList.add('dragghost');g.ghost.style.width=(r.width/SCALE)+'px';scr.appendChild(g.ghost);g.chip.classList.add('dragsrc')}
+  const sr=scr.getBoundingClientRect();g.ghost.style.left=((ev.clientX-sr.left)/SCALE-g.dx)+'px';g.ghost.style.top=((ev.clientY-sr.top)/SCALE-g.dy)+'px';
+  const el=document.elementFromPoint(ev.clientX,ev.clientY),cell=el&&el.closest('#screen [data-d]');
+  if(g.tgt&&g.tgt!==cell)g.tgt.classList.remove('droptgt','dropbad');
+  g.tgt=cell;if(cell)cell.classList.add(cell.dataset.d>=TODAY&&(!g.rec||cell.dataset.rec===g.rec)&&!started(g.t)&&!g.t.cierre?'droptgt':'dropbad');
+});
+const endCal=ev=>{
+  const g=cdrag;if(!g)return;cdrag=null;if(!g.moved)return;
+  noClick=Date.now()+400;if(g.ghost)g.ghost.remove();g.chip.classList.remove('dragsrc');if(g.tgt)g.tgt.classList.remove('droptgt','dropbad');
+  const cell=ev.type==='pointerup'?g.tgt:null,t=g.t;
+  if(!cell||cell.dataset.d===g.from){render();return}
+  if(g.rec&&cell.dataset.rec!==g.rec){toast('Solo se mueve de día dentro de la misma cuadrilla. Para cambiar de cuadrilla, editá el trabajo.');render();return}
+  if(t.cierre){toast(`${t.id} ya está cerrado`);render();return}
+  if(started(t)){toast(`${t.id} ya tiene partes cargados: no se puede mover de día. Se puede estirar o acortar desde el Gantt.`);render();return}
+  const ni=addDays(t.inicio,diffD(g.from,cell.dataset.d));
+  if(ni<TODAY){toast('No se puede mover a un día que ya pasó');render();return}
+  moveT(t,ni,t.dias);render();
+};
+scr.addEventListener('pointerup',endCal);scr.addEventListener('pointercancel',endCal);
 
 /* ---------- conexión: sin señal se guarda en la tablet y al volver se sincroniza ---------- */
 addEventListener('online',()=>{NET.online=true;if(S&&!offline()){const n=syncQueue();if(n)toast(`Señal recuperada · ${n} parte${n>1?'s':''} sincronizado${n>1?'s':''}`)}if(S)render()});
