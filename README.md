@@ -4,7 +4,7 @@ Web app de **Vientos del Sur** para gestionar los partes de servicio con las ope
 
 Circuito: **Planificación → Parte diario → Aprobación (planner) → Certificación con firma del cliente**.
 
-> **Versión de evaluación.** Todavía no tiene servidor: los datos se guardan en el dispositivo (`localStorage`). Los usuarios son de prueba. Ver [Próximos pasos para producción](#próximos-pasos-para-producción).
+> **Versión de evaluación (0.8).** Todavía no tiene servidor: los datos se guardan en el dispositivo (`localStorage`). Los usuarios son de prueba; los que crea el administrador existen solo en el dispositivo donde se crearon. Ver [Próximos pasos para producción](#próximos-pasos-para-producción).
 
 ## Usuarios de prueba
 
@@ -63,16 +63,23 @@ Los scripts se cargan en ese orden y comparten el ámbito global.
 ## Qué incluye
 
 - Planificación por contrato, centro de costo e imputación. Los contratos se listan agrupados por cliente y ordenados por número, uno por número.
+- La ventana de planificación pide primero el cliente y después el contrato. La ubicación se elige de la lista o se escribe ("Otra ubicación"), y las tareas previstas salen de un desplegable con "Otra tarea", que el jefe de cuadrilla detalla al cerrar el parte.
+- En la misma ventana se cargan varios trabajos (1º, 2º…) en distintas ubicaciones con la misma cuadrilla, personas y equipos. Cada uno queda como un trabajo y un parte aparte.
 - Una cuadrilla puede tener varios trabajos en el mismo día: se ordenan (1º, 2º…) y opcionalmente llevan hora de inicio. La hora es una guía para el operador; no limita la carga del parte.
 - Personas y equipos de cada trabajo con desplegables de búsqueda: se escribe y se elige, con la habilitación de cada uno a la vista.
 - Vistas Gantt, por recurso y mes, con ocupación y filtro por cliente y contrato. En las tres se mueve un trabajo de día arrastrándolo; en el Gantt también se estira o acorta desde el borde.
-- Parte diario en 4 pasos (inicio, personal y equipos, tareas y tiempos, cierre), con controles automáticos, firma del jefe de cuadrilla, fotos y pedidos de más días.
+- Parte diario en 4 pasos (inicio, personal y equipos, tareas y tiempos, cierre), con controles automáticos, una sola observación, firma del jefe de cuadrilla, fotos y pedidos de más días.
+- El operador ve su jornada de hoy y los próximos 7 días. Un parte enviado hoy y todavía sin aprobar se puede volver a editar y reenviar.
+- Las habilitaciones vencidas no frenan el envío: quedan como aviso interno para VDS y no salen en el PDF ni las ve el cliente.
+- Los campos numéricos tienen límites (viento 0 a 150 km/h, sin negativos; ver `LIM` en `js/config.js`), y un km menor al último registrado bloquea el envío salvo que se explique en la observación del equipo.
 - El personal solo se marca presente o ausente. Su horario se calcula solo, desde la llegada a la instalación hasta el último tramo del día en la locación, y se puede ajustar por persona en el cierre.
-- Las fotos se sacan con la cámara o se eligen de la galería, y se guardan en la base del dispositivo (IndexedDB) para no llenar el almacenamiento. Salen en el resumen del parte, en la aprobación y en el PDF.
+- Las fotos se sacan con la cámara o se eligen de la galería, y se guardan en la base del dispositivo (IndexedDB) para no llenar el almacenamiento. Salen en el resumen del parte, en la aprobación y en el PDF, encuadradas sin cortes.
 - Aprobación del planner y certificación del cliente con firma, con el detalle del parte en pestañas.
-- Dashboard del cliente con filtros y exportación a Excel.
+- Al aprobar, el planner carga las novedades de liquidación de sueldos por persona (siglas del catálogo de novedades). Son internas: no salen en el PDF ni en el Excel del cliente, y se exportan desde Partes con "Novedades a Excel". El catálogo se importa con el CSV del sistema de sueldos (`id;tabla_id;codigo;tipo`) desde Datos maestros.
+- Certificación del cliente con filtros por fecha y contrato, y pestañas Por certificar, Certificados, Observados y Todos.
+- Dashboard del cliente con filtros y exportación a Excel. El gráfico de horas hombre sigue el rango de fechas (por semana si pasa de 62 días) y tiene ejes con título.
 - Registro de actividad con motivo obligatorio para los cambios de administración.
-- Configuración en pestañas: datos maestros, contratos, cuadrillas, usuarios y permisos.
+- Configuración en pestañas: datos maestros, contratos, cuadrillas, usuarios y permisos. El administrador crea usuarios, los activa o desactiva y les da una clave nueva; de la clave se guarda solo su huella SHA-256.
 
 ## Cargar los datos reales (datos maestros)
 
