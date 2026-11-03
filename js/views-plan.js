@@ -103,14 +103,16 @@ function drawer(){
     <div><div class="lab">Historial</div><ol class="tl">${t.hist.map(x=>`<li>${esc(x.a)}<small>${esc(x.who)} · ${esc(when(x.t))}</small>${x.c?`<q>${esc(x.c)}</q>`:''}</li>`).join('')}</ol></div>
   </div></aside>`;
 }
+function listBase(){return S.partes.filter(p=>(S.lop==='all'||p.op===S.lop)&&(S.lct==='all'||p.ct===S.lct)&&(S.lrec==='all'||p.rec===S.lrec)&&(!S.lq||norm([p.id,p.pl,p.pozo,p.yac,p.imp,p.ct].join(' ')).includes(norm(S.lq))))}
+const listRows=()=>listBase().filter(p=>S.pf==='all'||p.estado===S.pf);
 function vList(){
   const f=S.pf;
-  const base=S.partes.filter(p=>(S.lop==='all'||p.op===S.lop)&&(S.lct==='all'||p.ct===S.lct)&&(S.lrec==='all'||p.rec===S.lrec)&&(!S.lq||norm([p.id,p.pl,p.pozo,p.yac,p.imp,p.ct].join(' ')).includes(norm(S.lq))));
+  const base=listBase();
   const opts=[['all','Todos'],...Object.entries(EST).filter(([k])=>k!=='plan')];
   const n=k=>k==='all'?base.length:base.filter(p=>p.estado===k).length;
   const rows=base.filter(p=>f==='all'||p.estado===f).sort((a,b)=>b.fecha.localeCompare(a.fecha)||b.id.localeCompare(a.id));
   return `<div class="bar">${selF('l-op','s:lop',opOpts(),S.lop,' aria-label="Cliente"')}${ctSel('l-ct','s:lct',S.lop,S.lct,'Todos los contratos','','Contrato')}${selF('l-rec','s:lrec',[['all','Todos los recursos'],...RECURSOS.map(r=>[r.id,r.n])],S.lrec,' aria-label="Recurso"')}<div class="srch">${ic('search')}<input class="inp" type="search" id="l-q" data-bind="s:lq" data-rr value="${esc(S.lq)}" placeholder="Nº de parte, pozo, imputación…" aria-label="Buscar"></div></div>
-  <div class="bar">${opts.map(([k,l])=>`<button class="chip sm3" data-a="p-filter" data-f="${k}" aria-pressed="${f===k}">${l} <span class="n">${n(k)}</span></button>`).join('')}<span class="sp"></span><span class="sm">${rows.length} partes</span></div>
+  <div class="bar">${opts.map(([k,l])=>`<button class="chip sm3" data-a="p-filter" data-f="${k}" aria-pressed="${f===k}">${l} <span class="n">${n(k)}</span></button>`).join('')}<span class="sp"></span><span class="sm">${rows.length} partes</span><button class="btn sm2" data-a="xls-nov"${rows.some(p=>novCount(p))?'':' disabled title="Ningún parte de la lista tiene novedades cargadas"'}>${ic('xls')}Novedades a Excel</button></div>
   <div class="pnl tblp fill"><div class="body" data-keep="v"><table class="tbl sticky"><thead><tr><th>Nº</th><th>Fecha</th><th>Trabajo</th><th>Recurso</th><th>Contrato · imputación</th><th>Ubicación</th><th class="num">Horas</th><th>Estado</th></tr></thead><tbody>
   ${rows.map(p=>{const s=sums(p);return `<tr class="click" data-a="sum" data-id="${p.id}"><td class="mono">${p.id}</td><td class="nw">${fDay(p.fecha)}</td><td class="mono nw">${p.pl} <span class="sm">d${p.dia+1}</span>${p.fin==='fin'?` <span class="sm">· cierre</span>`:''}</td><td>${esc(recOf(p.rec).n)}</td><td><span class="mono">${esc(p.ct)}</span><div class="sm mono">${esc(p.imp||'')}</div></td><td>${esc(locOf(p))}</td><td class="num">${s.jor?fmtH(s.jor):'—'}</td><td>${pill(p.estado)}</td></tr>`}).join('')||`<tr><td colspan="8"><div class="empty">No hay partes con estos filtros.</div></td></tr>`}
   </tbody></table></div></div>`;

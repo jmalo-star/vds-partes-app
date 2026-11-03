@@ -48,7 +48,7 @@ function demoCat(){
   const per=[];Object.entries(D_CREW).forEach(([r,a])=>a.forEach((n,i)=>per.push({n,leg:'',rol:roleK(D_RECURSOS.find(x=>x.id===r).k,i)})));D_POOL.forEach(n=>per.push({n,leg:'',rol:'Operario'}));
   return {src:'demo',file:'',at:'',by:'',clientes:Object.fromEntries(Object.keys(D_OPS).map(k=>[k,{n:D_OPS[k],sup:D_OPSUP[k]}])),
     cuadrillas:D_RECURSOS.map(r=>({id:r.id,n:r.n,k:r.k,pers:D_CREW[r.id].slice(),eqs:D_VEH[r.id].slice()})),personal:per,equipos:Object.assign({},D_EQ),km0:Object.assign({},D_KM0),
-    sups:['Pablo Ortiz','Natalia Vera'],rts:['Martín Sosa','Andrea Lucero'],habLoaded:true,cliUser:{n:'Gustavo Rivas',id:'grivas',op:'AUP'},opUser:{n:'Diego Arce',id:'darce',rec:'C-03'},warns:[]};
+    sups:['Pablo Ortiz','Natalia Vera'],rts:['Martín Sosa','Andrea Lucero'],habLoaded:true,novedades:D_NOV.map(([c,t])=>({c,t})),cliUser:{n:'Gustavo Rivas',id:'grivas',op:'AUP'},opUser:{n:'Diego Arce',id:'darce',rec:'C-03'},warns:[]};
 }
 function applyCat(c){
   OPS={};OPSUP={};Object.entries(c.clientes).forEach(([k,v])=>{OPS[k]=v.n;OPSUP[k]=v.sup||('Supervisor '+k)});
@@ -111,7 +111,7 @@ function genEjec(t,fecha){
     reg,obs:'',fotos:[],firma:'seed'};
 }
 function mkParte(t,fecha,estado,patch){
-  const p=Object.assign(snap(t,fecha),{estado,ejec:estado==='plan'?null:genEjec(t,fecha),dec:null,cert:null,fin:null,ext:null,cierreObs:'',hist:[{t:(t.hist[0]||{}).t||P0(),who:(t.hist[0]||{}).who||APROB,a:'Planificado',c:''}]});
+  const p=Object.assign(snap(t,fecha),{estado,ejec:estado==='plan'?null:genEjec(t,fecha),dec:null,cert:null,fin:null,ext:null,nov:{},hist:[{t:(t.hist[0]||{}).t||P0(),who:(t.hist[0]||{}).who||APROB,a:'Planificado',c:''}]});
   p.fin=p.dia>=t.dias-1?'fin':'sigue';
   const nx=addDays(fecha,1),op=CTS[t.ct].op,g=Math.abs(diffD(dRel(-7),fecha));
   if(estado!=='plan')p.hist.push({t:stamp(fecha,'06:3'+(g%9)),who:jefeP(p),a:'Parte iniciado',c:''});
@@ -119,14 +119,14 @@ function mkParte(t,fecha,estado,patch){
   if(['apr','cert'].includes(estado)){p.dec={d:'ok',who:APROB,t:stamp(nx,'09:20'),com:''};p.hist.push({t:p.dec.t,who:APROB,a:'Aprobado',c:''})}
   if(estado==='cert'){p.cert={d:'ok',who:OPSUP[op]+' · '+OPS[op],t:stamp(addDays(nx,1),'15:40'),com:'',firma:'seed'};p.hist.push({t:p.cert.t,who:OPSUP[op]+' · '+OPS[op],a:'Certificado y firmado',c:''})}
   if(patch)patch(p);
-  if(p.fin==='fin'&&['env','obs','apr','cert'].includes(p.estado)&&!t.cierre){t.cierre={fecha,parte:null,who:jefeP(p),t:stamp(fecha,'19:15'),obs:p.cierreObs,anticipado:false};t.hist.push({t:t.cierre.t,who:jefeP(p),a:'Trabajo cerrado por el jefe de cuadrilla',c:p.cierreObs})}
+  if(p.fin==='fin'&&['env','obs','apr','cert'].includes(p.estado)&&!t.cierre){t.cierre={fecha,parte:null,who:jefeP(p),t:stamp(fecha,'19:15'),obs:p.ejec?p.ejec.obs:'',anticipado:false};t.hist.push({t:t.cierre.t,who:jefeP(p),a:'Trabajo cerrado por el jefe de cuadrilla',c:t.cierre.obs})}
   return p;
 }
 function seed(){
   const T=seedTrabajos(),P=[],R=dRel;
   const O={
-    ['PL-090|'+R(-3)]:['apr',p=>{p.cierreObs='Línea de 4 pulgadas montada y probada. Locación entregada limpia.'}],
-    ['PL-093|'+R(-2)]:'apr',['PL-094|'+R(-2)]:'apr',
+    ['PL-090|'+R(-3)]:['apr',p=>{p.ejec.obs='Línea de 4 pulgadas montada y probada. Locación entregada limpia.'}],
+    ['PL-093|'+R(-2)]:['apr',p=>{p.nov={[p.pers[0]]:['VIANDA'],[p.pers[1]]:['VIANDA']}}],['PL-094|'+R(-2)]:'apr',
     ['PL-093|'+R(-1)]:['env',p=>{const e=p.ejec;e.llegada='07:20';e.personal[0].fin='18:40';
       e.reg=[{c:'tr',de:'06:30',a:'07:20',d:'Base → Escalante',q:'',u:'',det:''},{c:'op',de:'07:20',a:'10:00',d:'Desmalezado',q:'1200',u:'m²',det:'Sector sur y accesos'},{c:'es',de:'10:00',a:'11:30',d:'Permiso de trabajo',q:'',u:'',det:'Supervisor AUP llegó 11:25'},{c:'op',de:'11:30',a:'13:00',d:'Armado de cerco perimetral',q:'30',u:'m',det:'Lado norte'},{c:'rf',de:'13:00',a:'13:30',d:'',q:'',u:'',det:''},{c:'op',de:'13:30',a:'18:20',d:'Armado de cerco perimetral',q:'55',u:'m',det:'Lado este'},{c:'tr',de:'18:20',a:'19:10',d:'Regreso a base',q:'',u:'',det:''}];
       e.permiso.hora='11:25';
@@ -136,11 +136,11 @@ function seed(){
     ['PL-094|'+R(-1)]:['env',p=>{const e=p.ejec;e.llegada='07:45';
       e.reg=[{c:'tr',de:'06:45',a:'07:45',d:'Base → CP-77',q:'',u:'',det:''},{c:'op',de:'07:45',a:'12:00',d:'Zanjeo manual',q:'38',u:'m',det:'Tramo batería 2 a satélite 5'},{c:'vi',de:'12:00',a:'13:30',d:'',q:'72',u:'km/h',det:'Personal resguardado en el vehículo'},{c:'op',de:'13:30',a:'17:15',d:'Zanjeo manual',q:'26',u:'m',det:'Tramo satélite 5'},{c:'tr',de:'17:15',a:'18:00',d:'Regreso a base',q:'',u:'',det:''}];
       e.obs='Ráfagas de 72 km/h entre 12:00 y 13:30. Se suspendió el trabajo y se resguardó al personal en el vehículo.';e.fotos=[{cap:'Zanja tramo 1'}];
-      e.clima={t:'11',v:'44',r:'72',dir:'SO',cond:'Ventoso',src:'app',at:'07:41'};p.cierreObs='Zanja terminada (64 m en total del día). Falta tapado, queda para otra orden.'}],
+      e.clima={t:'11',v:'44',r:'72',dir:'SO',cond:'Ventoso',src:'app',at:'07:41'};e.obs+=' Zanja terminada (64 m en total del día). Falta tapado, queda para otra orden.'}],
     ['PL-091|'+R(-2)]:['obs',p=>{const e=p.ejec;e.llegada='07:50';
       e.reg=[{c:'tr',de:'06:45',a:'07:50',d:'Base → DI-408',q:'',u:'',det:''},{c:'op',de:'07:50',a:'12:30',d:'Zanjeo manual',q:'',u:'m',det:''},{c:'es',de:'12:30',a:'13:15',d:'Responsable Operadora',q:'',u:'',det:'Habilitación del tramo 2'},{c:'rf',de:'13:15',a:'13:45',d:'',q:'',u:'',det:''},{c:'op',de:'13:45',a:'16:00',d:'Desmalezado',q:'800',u:'m²',det:''},{c:'op',de:'16:00',a:'18:20',d:'Movimiento de suelo',q:'24',u:'m³',det:'Relleno de zanja tramo 1'},{c:'tr',de:'18:20',a:'19:00',d:'Regreso a base',q:'',u:'',det:''}];
       e.obs='Se esperó al supervisor de la operadora para habilitar el tramo 2 del zanjeo.';
-      const c=`Cristian Paz tiene la habilitación de Golfo Energía vencida desde el ${fS(R(-7)).slice(0,5)}: no puede figurar como presente. Falta además la cantidad de zanjeo.`;
+      const c='Falta la cantidad de zanjeo del tramo de la mañana y el detalle de la espera de la operadora.';
       p.dec={d:'obs',who:APROB,t:stamp(TODAY,'08:15'),com:c};p.hist.push({t:p.dec.t,who:APROB,a:'Devuelto con observaciones',c})}],
     ['PL-092|'+TODAY]:['curso',p=>{const e=p.ejec;e.check.epp=false;e.llegada='07:35';e.clima=null;e.firma=null;e.permiso={num:'',firmo:'',hora:''};
       e.equipos.forEach(q=>q.km='');
@@ -183,7 +183,7 @@ function exampleSeed(){
   return {T,P};
 }
 
-const NAMEROL=n=>{if(n==='Sistema')return 'Sistema';const u=Object.values(USERS).find(x=>x.n===n);if(u)return ROLE_N[u.rol];if(Object.values(OPSUP).some(x=>n.startsWith(x)))return 'Cliente';if(Object.values(CREW).some(a=>a[0]===n))return 'Operador';return 'Usuario'};
+const NAMEROL=n=>{if(n==='Sistema')return 'Sistema';const u=Object.values(ALLU()).find(x=>x.n===n);if(u)return ROLE_N[u.rol];if(Object.values(OPSUP).some(x=>n.startsWith(x)))return 'Cliente';if(Object.values(CREW).some(a=>a[0]===n))return 'Operador';return 'Usuario'};
 function seedLog(T,P){
   const L=[],R=dRel;const add=(ts,who,accion,obj,det,mot,tipo)=>L.push({ts,who,rol:NAMEROL(who),accion,obj,det:det||'',mot:mot||'',tipo});
   P.forEach(p=>p.hist.forEach(h=>{if(h.a!=='Planificado')add(parseStamp(h.t),h.who,h.a,p.id,'',h.a.startsWith('Devuelto')?h.c:'','parte')}));

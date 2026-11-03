@@ -9,7 +9,10 @@ function loadLib(k){
 }
 const whenX=t=>{const m=String(t||'').match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);return m?fS(m[1])+' '+m[2]:String(t||'')};
 const SEEDSIG=[[20,60],[40,20,60,20,62,52],[74,84,90,80,104,40],[112,18,128,24,122,58],[118,78,150,30,170,44],[190,58,210,70,228,36],[236,22,250,30,280,40]];
-function pdfSig(doc,f,x,y,w,h){if(!f)return;if(f==='seed'){doc.setDrawColor(20,32,42);doc.setLineWidth(.5);const sx=w/300,sy=h/90;let px=x+SEEDSIG[0][0]*sx,py=y+SEEDSIG[0][1]*sy;SEEDSIG.slice(1).forEach(q=>{const nx=x+q[4]*sx,ny=y+q[5]*sy;doc.line(px,py,nx,ny);px=nx;py=ny});doc.setLineWidth(.2);return}try{doc.addImage(f,'PNG',x,y,w,h)}catch(er){}}
+function pdfImg(doc,src,x,y,w,h){const fmt=/^data:image\/png/i.test(src)?'PNG':'JPEG';let iw=w,ih=h;
+  try{const pr=doc.getImageProperties(src);const k=Math.min(w/pr.width,h/pr.height);iw=pr.width*k;ih=pr.height*k}catch(er){}
+  try{doc.addImage(src,fmt,x+(w-iw)/2,y+(h-ih)/2,iw,ih)}catch(er){}}
+function pdfSig(doc,f,x,y,w,h){if(!f)return;if(f==='seed'){doc.setDrawColor(20,32,42);doc.setLineWidth(.5);const sx=w/300,sy=h/90;let px=x+SEEDSIG[0][0]*sx,py=y+SEEDSIG[0][1]*sy;SEEDSIG.slice(1).forEach(q=>{const nx=x+q[4]*sx,ny=y+q[5]*sy;doc.line(px,py,nx,ny);px=nx;py=ny});doc.setLineWidth(.2);return}pdfImg(doc,f,x,y,w,h)}
 const PDF_INK=[20,32,42],PDF_ACC=[182,90,11],PDF_BAND=[19,33,44],PDF_ORG=[240,138,36];
 function buildPdf(p,fotos){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
@@ -32,18 +35,18 @@ function buildPdf(p,fotos){
   const w=e.clima,pm=e.permiso;
   kv([['Temperatura',w&&w.t!==''?w.t+' °C':'-','Viento / ráfagas',w?`${w.v||'-'} / ${w.r||'-'} km/h ${w.dir}`:'-'],['Condición',w?w.cond:'-','Fuente',w?(w.src==='app'?(w.fuente||'App de clima')+' '+(w.at||''):'Carga manual'):'-'],['Permiso operadora',p.ptw?(pm&&pm.num?pm.num:'Falta'):'No requiere','Firmó',p.ptw&&pm&&pm.firmo?`${pm.firmo} · ${pm.hora}`:'-'],['Charla de seguridad',e.check.charla?'Sí':'No','EPP verificado',e.check.epp?'Sí':'No']]);
   sec(`Personal · ${s.pers} presentes · ${fmtH(s.hh)} hombre`);
-  tbl(['Persona','Rol','Inicio','Fin','Horas','Habilitación'],e.personal.map(x=>[x.n,x.rol,x.pres?pIni(e,x)||'-':'Ausente',x.pres?pFin(e,x)||'-':'',x.pres&&pDur(e,x)?fmtH(pDur(e,x))+(pManual(x)?' (ajustado)':''):'-',habTxt(hab(x.n,p.op,p.fecha))]));
+  tbl(['Persona','Rol','Inicio','Fin','Horas'],e.personal.map(x=>[x.n,x.rol,x.pres?pIni(e,x)||'-':'Ausente',x.pres?pFin(e,x)||'-':'',x.pres&&pDur(e,x)?fmtH(pDur(e,x))+(pManual(x)?' (ajustado)':''):'-']));
   sec(`Equipos · ${num(s.km)} km`);
-  tbl(['Equipo','Km actual','Recorrido','Observación','Habilitación'],e.equipos.map(q=>{const pk=lastKm(q.c,p);return [`${q.c} ${EQ[q.c]}`,q.km===''?'-':num(q.km),q.km!==''&&pk!==null?num(q.km-pk)+' km':'-',q.obs||'-',habTxt(hab(q.c,p.op,p.fecha))]}));
+  tbl(['Equipo','Km actual','Recorrido','Observación'],e.equipos.map(q=>{const pk=lastKm(q.c,p);return [`${q.c} ${EQ[q.c]}`,q.km===''?'-':num(q.km),q.km!==''&&pk!==null?num(q.km-pk)+' km':'-',q.obs||'-']}));
   sec('Producción del día');
   const pr=prod(p);tbl(['Tarea','Cantidad','Unidad','Origen'],pr.length?pr.map(x=>[x.d,x.q?num(x.q):'-',x.u,p.prev.includes(x.d)?'Prevista':inCat(p.ct,x.d)?'Adicional':'Fuera de catálogo']):[['Sin tareas','','','']]);
   sec(`Tareas y tiempos · ${fmtH(s.jor)}`);
   tbl(['Desde','Hasta','Categoría','Tarea / motivo / detalle','Cantidad'],e.reg.slice().sort((a,b)=>mins(a.de)-mins(b.de)).map(x=>[x.de,x.a,TCAT[x.c],(x.d||'-')+(x.det?' · '+x.det:''),regQ(x)]));
-  if(p.fin==='fin'&&t){const tt=trabTotals(t,p);sec(`Cierre del trabajo ${p.pl} · ${tt.dias} día(s) · ${fmtH(tt.hh)} hombre`);tbl(['Tarea','Total del trabajo'],tt.prod.map(x=>[x.d,num(x.q)+' '+x.u]));if(p.cierreObs){doc.setFontSize(9);const l2=doc.splitTextToSize(cl('Observación final: '+p.cierreObs),W-2*M);doc.text(l2,M,y);y+=l2.length*4.2+6}}
+  if(p.fin==='fin'&&t){const tt=trabTotals(t,p);sec(`Cierre del trabajo ${p.pl} · ${tt.dias} día(s) · ${fmtH(tt.hh)} hombre`);tbl(['Tarea','Total del trabajo'],tt.prod.map(x=>[x.d,num(x.q)+' '+x.u]));}
   if(p.fin==='ext'&&p.ext){sec('Pedido de extensión');doc.setFontSize(9);const l3=doc.splitTextToSize(cl(`${p.ext.dias} día(s) más. ${p.ext.motivo}`),W-2*M);doc.text(l3,M,y+2);y+=l3.length*4.2+8}
   sec('Observaciones');
   doc.setFont('helvetica','normal');doc.setFontSize(9);const lines=doc.splitTextToSize(cl(e.obs||'Sin observaciones.'),W-2*M);doc.text(lines,M,y+2);y+=lines.length*4.2+8;
-  const ck=checks(p);
+  const ck=checks(p).filter(x=>x[3]!=='int');
   if(ck.length){sec('Controles automáticos');tbl(['Nivel','Detalle'],ck.map(x=>[x[0]==='err'?'Bloqueante':'Alerta',x[1]]),{columnStyles:{0:{cellWidth:28}}})}
   if(y>230){doc.addPage();y=18}
   sec('Firmas y aprobaciones');
@@ -57,7 +60,7 @@ function buildPdf(p,fotos){
   sec('Historial');
   tbl(['Fecha','Persona','Acción','Comentario'],p.hist.map(x=>[whenX(x.t),x.who,x.a,x.c||'']),{columnStyles:{0:{cellWidth:26},1:{cellWidth:42},2:{cellWidth:44}}});
   const ph=e.fotos.map((f,i)=>({cap:f.cap,src:(fotos&&fotos[i])||f.src})).filter(f=>f.src);
-  if(ph.length){doc.addPage();y=18;sec('Registro fotográfico');y+=2;ph.forEach((f,i)=>{const col=i%2,row=Math.floor(i/2)%3;if(i&&i%6===0){doc.addPage();y=20}const x=M+col*93,yy=y+row*76;try{doc.addImage(f.src,'JPEG',x,yy,88,64)}catch(er){}doc.setFontSize(8);doc.setTextColor(92,105,118);doc.text(cl(f.cap),x,yy+69)})}
+  if(ph.length){doc.addPage();y=18;sec('Registro fotográfico');y+=2;ph.forEach((f,i)=>{const col=i%2,row=Math.floor(i/2)%3;if(i&&i%6===0){doc.addPage();y=20}const x=M+col*93,yy=y+row*76;doc.setFillColor(244,246,248);doc.setDrawColor(220,225,231);doc.roundedRect(x,yy,88,64,1.5,1.5,'FD');pdfImg(doc,f.src,x+1,yy+1,86,62);doc.setFontSize(8);doc.setTextColor(92,105,118);doc.text(cl(f.cap),x,yy+69)})}
   const n=doc.getNumberOfPages();
   for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(7.5);doc.setTextColor(137,148,160);doc.text(cl(`VDS Partes de campo · ${p.id} · generado el ${fDay(TODAY)} ${TODAY.slice(0,4)} ${hm()}`),M,290);doc.text(`Página ${i} de ${n}`,W-M,290,{align:'right'})}
   return doc.output('blob');
@@ -111,6 +114,13 @@ async function exportDash(){
     ['Equipos',[['Nº parte','Fecha','Imputación','Equipo','Descripción','Km actual','Recorrido km','Observación'],...rE],[10,11,22,10,24,11,12,30]]];
   logA('Exportación a Excel del dashboard',ctF==='all'?OPS[op]:ctF,`${ps.length} partes · ${fS(S.dfrom||first)} a ${fS(S.dto||last)}${impF!=='all'?' · '+impF:''}`,'','export');
   saveBlob(xlsxBlob(sheets),`VDS_${fname(op)}_${fname(ctF==='all'?'todos':ctF)}_${fname(impF==='all'?'todas':impF)}_${S.dfrom||first}_${S.dto||last}.xlsx`,`Excel descargado · ${ps.length} partes`);
+}
+async function exportNov(list){
+  try{await loadLib('xlsx')}catch(e){toast('No se pudo cargar el generador de Excel: '+e.message);render();return}
+  const rows=[];list.slice().sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.id.localeCompare(b.id)).forEach(p=>Object.entries(p.nov||{}).forEach(([n,cs])=>cs.forEach(c=>{const t=(novCat().find(x=>x.c===c)||{}).t;rows.push([p.id,xd(p.fecha),EST[p.estado],OPS[p.op],p.ct,p.imp,recOf(p.rec).n,n,c,NOVT[t]||''])})));
+  if(!rows.length){toast('Ningún parte de la lista tiene novedades cargadas');render();return}
+  logA('Exportación de novedades','',`${rows.length} novedades de ${new Set(rows.map(r=>r[0])).size} partes`,'','export');
+  saveBlob(xlsxBlob([['Novedades',[['Nº parte','Fecha','Estado','Cliente','Contrato','Imputación','Recurso','Persona','Novedad','Tipo'],...rows],[10,11,14,18,14,22,16,24,18,12]]]),`VDS_novedades_${TODAY}.xlsx`,`Novedades exportadas · ${rows.length}`);
 }
 async function exportLog(){
   try{await loadLib('xlsx')}catch(e){toast('No se pudo cargar el generador de Excel: '+e.message);render();return}

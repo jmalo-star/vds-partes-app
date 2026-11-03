@@ -105,6 +105,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .cols{display:grid;gap:12px;min-height:0}
 .cols>*,.g3>*{min-height:0}
 .g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-height:0}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-height:0}
 .stack{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
 .scrolly{overflow:auto}
 .trow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -459,12 +460,26 @@ select.w120{width:120px;flex:none}
 .ctbox select.inp{height:36px;font-size:14px;margin-top:3px}
 .ctbox>div{min-width:0}
 .ctbox b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rsel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;height:262px;flex:none}
+.rsel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;flex:1 1 200px;min-height:176px}
+.ctrow{grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr)}
+.jobs{flex:none;gap:6px}
+.jlist{display:flex;flex-direction:column;gap:8px;max-height:262px;overflow:auto}
+.job{border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:7px;background:var(--panel)}
+.job.bad{border-color:var(--st-err)}
+.jr{display:flex;align-items:center;gap:8px;min-width:0}
+.jr>select.inp,.jr>.uo{flex:1;min-width:0}
+.jr .uo{display:flex;gap:6px}.jr .uo .inp{flex:1;min-width:0}
+.jr>select#m-orden{flex:none;width:112px}
+.jn{flex:none;min-width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font-size:13px}
+.jt{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.jt .chip .i{width:14px;height:14px;opacity:.7}
+.jt .cbx{flex:1 1 200px;min-width:180px}
+.jadd{align-self:flex-start}
 .lhint{float:right;text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint);font-size:12px}
 .stepper.wide{display:flex;width:100%}
 .stepper.wide b{flex:1}
 .seg.tight button{padding:0 4px;font-size:12.5px;gap:4px}
-.mcol textarea.inp{min-height:62px}
+.mcol textarea.inp{min-height:44px}
 .rbox{border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:0;background:var(--panel)}
 .rbox.col{display:flex;flex-direction:column;min-height:0}
 .rbox .hh{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel-2);border-bottom:1px solid var(--line);font-size:13.5px;font-weight:700;flex:none}
@@ -611,6 +626,7 @@ button.mrow:hover{border-color:var(--line-2)}
 .chk .i{color:var(--c);width:19px;height:19px}
 .chk.err{--c:var(--st-err)} .chk.warn{--c:var(--st-curso)} .chk.ok{--c:var(--st-ok)}
 .chk span{flex:1;min-width:0}
+.chk .intn{display:block;font-size:11.5px;color:var(--muted);font-weight:500;margin-top:1px}
 .chk .go{height:30px;padding:0 10px;border-radius:7px;border:1px solid var(--line-2);background:var(--panel);font-size:12.5px;font-weight:600;cursor:pointer;color:var(--muted);flex:none}
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;flex:none}
 .stat{background:var(--panel-2);border-radius:9px;padding:8px 12px;min-width:0}
@@ -795,3 +811,42 @@ button.more{border:0;background:none;cursor:pointer;text-align:left;padding:0 4p
 .thumbs.t4 .upl{font-size:11px;gap:2px}
 .thumbs.t5{grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:12px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* operador: días hacia adelante y edición de lo enviado hoy */
+.dtabs{flex:none;align-self:flex-start;max-width:100%;overflow-x:auto}
+.dtabs button{gap:6px;white-space:nowrap}
+.dtabs .n{min-width:20px;height:20px;border-radius:10px;display:inline-grid;place-items:center;background:var(--surface);color:var(--muted);font-size:11.5px;padding:0 5px}
+.dtabs button[aria-pressed="true"] .n{background:var(--accent);color:var(--accent-ink)}
+.tcard.fut{border-style:dashed;background:var(--panel-2)}
+.tcard .fnote{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.mrw{display:flex;gap:6px;align-items:stretch;flex:none}
+.mrw .mrow{flex:1;min-width:0}
+.mrw .btn{height:auto;flex:none}
+/* certificación del cliente: filtros por fecha y contrato */
+.cfil{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:0 12px 8px;flex:none}
+.cfil .inp.dt{width:100%;height:36px}
+.cfil .fld>label{display:flex;align-items:center}
+.lclr{margin-left:auto;border:0;background:none;color:var(--accent-t);font-size:11.5px;font-weight:700;cursor:pointer;padding:0;text-transform:none;letter-spacing:0}
+.vlist>select.inp{margin:0 12px 8px}
+/* novedades internas */
+.nlist{display:flex;flex-direction:column;gap:8px}
+.nrow{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(0,1.6fr) minmax(200px,1fr);gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2)}
+.nrow .nm{display:flex;flex-direction:column;min-width:0}
+.nrow .nm small{color:var(--muted);font-size:12px}
+.nchips{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.nchips .chip .i{width:14px;height:14px;opacity:.7}
+.chip.nv-aus[aria-pressed="true"]{background:color-mix(in srgb,var(--st-obs) 12%,var(--panel));border-color:color-mix(in srgb,var(--st-obs) 55%,var(--line));color:var(--st-obs)}
+.nadd .cbx .inp{height:36px;font-size:13.5px}
+.lclr.novl{margin-left:10px;display:inline-flex;gap:4px;align-items:center}.lclr.novl .i{width:13px;height:13px}
+/* gráfico de horas hombre con ejes */
+.barsw{position:relative}
+.ytit{position:absolute;left:-2px;top:50%;transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;margin-left:8px}
+.barsw .bars{margin-left:56px}
+.barsw .bars .gl2 span{left:-44px;width:38px}
+.barsw .xlab{margin-left:56px}
+.xlab span{white-space:nowrap;overflow:visible}
+.xtit{margin-left:56px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;flex:none}
+.docp .thumb img{object-fit:contain;background:var(--surface)}
+.vin.cli{grid-template-columns:392px minmax(0,1fr)}
+.vin.cli .vlist .seg{display:grid;grid-auto-flow:column;grid-auto-columns:auto}
+.vin.cli .vlist .seg button{padding:0 4px;font-size:12.5px;white-space:nowrap}
+.barsw .bars .gl2 span{color:var(--muted);font-size:11.5px}

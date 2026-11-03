@@ -4,14 +4,20 @@ const UI={modal:null,drawer:null,toast:null,login:{u:'',p:'',err:'',show:false,d
 const NET={online:navigator.onLine!==false};
 
 function baseState(){return {user:null,route:'login',back:null,sel:null,step:0,vf:'env',vsel:null,vop:'all',cf:'apr',csel:null,pf:'all',lop:'all',lct:'all',lrec:'all',lq:'',hf:'p',hq:'',hbad:false,pv:'gantt',fop:'all',fct:'all',
-  gs:addDays(mondayOf(TODAY),-7),ws:mondayOf(TODAY),ms:TODAY.slice(0,7),dop:Object.keys(OPS)[0],dct:'all',dimp:'all',dfrom:'',dto:'',dtab:'res',itab:'res',ctab:'datos',cct:null,ccu:null,gt:'all',gu:'all',gq:'',rmin:false,simOff:false}}
+  gs:addDays(mondayOf(TODAY),-7),ws:mondayOf(TODAY),ms:TODAY.slice(0,7),dop:Object.keys(OPS)[0],dct:'all',dimp:'all',dfrom:'',dto:'',dtab:'res',itab:'res',ctab:'datos',cct:null,ccu:null,gt:'all',gu:'all',gq:'',rmin:false,simOff:false,oday:0,cfrom:'',cto:'',cctf:'all'}}
 function fresh(){const cat=demoCat();applyCat(cat);CTS=JSON.parse(JSON.stringify(CONTRATOS0));const s=seed();
   Object.entries(CTS).forEach(([k,c])=>{c.ubic=[...new Set(s.T.filter(t=>t.ct===k).map(locOf))].sort();c.eqs=[...new Set(c.recs.flatMap(r=>VEH[r]||[]))]});
-  return Object.assign(baseState(),{v:7,cat,trabajos:s.T,partes:s.P,contratos:CTS,hab:seedHab(),adm:{planner:true,planner2:false},log:seedLog(s.T,s.P)})}
+  return Object.assign(baseState(),{v:7,cat,trabajos:s.T,partes:s.P,contratos:CTS,hab:seedHab(),adm:{planner:true,planner2:false},users:{},log:seedLog(s.T,s.P)})}
 /* Almacenamiento local del dispositivo. Cuando haya backend, load/save pasan a sincronizar con la API. */
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.v===7&&x.cat&&Array.isArray(x.partes)&&Array.isArray(x.trabajos)&&Array.isArray(x.log)){applyCat(x.cat);CTS=x.contratos;migrate(x);return Object.assign(baseState(),x)}}catch(e){}return null}
-/* v0.7.1: el personal ya no carga ingreso a base ni horarios: se calculan desde la llegada y los tramos */
-function migrate(x){x.partes.forEach(p=>{if(p.ejec)p.ejec.personal.forEach(q=>{if('base' in q){delete q.base;delete q.zona;delete q.out;q.ini=q.ini||'';q.fin=q.fin||''}})});x.trabajos.forEach(t=>{if(t.orden==null)t.orden=0;if(t.hora==null)t.hora=''})}
+/* Cambios de formato entre versiones guardadas en el dispositivo */
+function migrate(x){
+  // v0.7.1: el personal ya no carga ingreso a base ni horarios: se calculan desde la llegada y los tramos
+  x.partes.forEach(p=>{if(p.ejec)p.ejec.personal.forEach(q=>{if('base' in q){delete q.base;delete q.zona;delete q.out;q.ini=q.ini||'';q.fin=q.fin||''}})});x.trabajos.forEach(t=>{if(t.orden==null)t.orden=0;if(t.hora==null)t.hora=''});
+  // v0.8: una sola observación por parte (la del cierre se une a la del día), usuarios creados por el administrador y novedades
+  x.partes.forEach(p=>{if(p.cierreObs){if(p.ejec&&!String(p.ejec.obs||'').includes(p.cierreObs))p.ejec.obs=[p.ejec.obs,p.cierreObs].filter(Boolean).join('\n');delete p.cierreObs}});
+  x.users=x.users||{};if(!x.cat.novedades)x.cat.novedades=D_NOV.map(([c,t])=>({c,t}));
+}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));UI.saveErr=false}catch(e){if(!UI.saveErr){UI.saveErr=true;toast('No queda espacio en el dispositivo para guardar los cambios. Sincronizá o liberá espacio antes de seguir.');setTimeout(render,0)}}}
 
 /* ---------- fotos: se guardan aparte (IndexedDB) para no llenar el almacenamiento del estado ---------- */
@@ -25,7 +31,7 @@ const mediaDel=id=>mediaTx('readwrite',st=>st.delete(id)).catch(()=>{});
 function fotoSrc(f){if(f.src)return f.src;if(!f.id)return '';if(MEDIA.url[f.id])return MEDIA.url[f.id];
   if(!MEDIA.pend[f.id])MEDIA.pend[f.id]=mediaGet(f.id).then(b=>{if(b){MEDIA.url[f.id]=URL.createObjectURL(b);render()}}).catch(()=>{});return ''}
 async function fotoData(f){if(f.src)return f.src;if(!f.id)return null;const b=await mediaGet(f.id).catch(()=>null);if(!b)return null;return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res(null);r.readAsDataURL(b)})}
-function regenExamples(){const keep={cat:S.cat,contratos:S.contratos,hab:S.hab,adm:S.adm,log:S.log,user:S.user,route:S.route};applyCat(keep.cat);CTS=keep.contratos;const s=exampleSeed();S=Object.assign(baseState(),{v:7},keep,{trabajos:s.T,partes:s.P})}
+function regenExamples(){const keep={cat:S.cat,contratos:S.contratos,hab:S.hab,adm:S.adm,users:S.users,log:S.log,user:S.user,route:S.route};applyCat(keep.cat);CTS=keep.contratos;const s=exampleSeed();S=Object.assign(baseState(),{v:7},keep,{trabajos:s.T,partes:s.P})}
 
 /* ---------- accesos ---------- */
 const CT=id=>S.contratos[id];
@@ -67,12 +73,29 @@ const ccMatch=(c,rid)=>{const l=c.ccs||[];if(l.length<2)return -1;const r=RECURS
 const ccFor=(ct,rid)=>String(Math.max(0,ccMatch(CT(ct),rid)));
 
 /* ---------- roles y registro ---------- */
-const role=()=>S.user&&USERS[S.user]?USERS[S.user].rol:null;
-const admOf=k=>!!USERS[k]&&(USERS[k].rol==='admin'||(USERS[k].rol==='planner'&&!!(S.adm||{})[k]));
+/* Usuarios: los de prueba (USERS, ver config.js) más los que crea el administrador (S.users) */
+const ALLU=()=>Object.assign({},USERS,(S&&S.users)||{});
+const UO=k=>ALLU()[k];
+const meU=()=>(S&&UO(S.user))||{};
+const role=()=>S.user&&UO(S.user)?UO(S.user).rol:null;
+const admOf=k=>!!UO(k)&&(UO(k).rol==='admin'||(UO(k).rol==='planner'&&!!(S.adm||{})[k]));
 const isAdm=()=>!!S.user&&admOf(S.user);
 const canPlan=()=>role()==='planner'||role()==='admin';
-const rolLbl=k=>USERS[k]?ROLE_N[USERS[k].rol]+(USERS[k].rol==='planner'&&admOf(k)?' · admin':''):'';
-const meN=()=>S&&USERS[S.user]?USERS[S.user].n:'';
+const rolLbl=k=>UO(k)?ROLE_N[UO(k).rol]+(UO(k).rol==='planner'&&admOf(k)?' · admin':''):'';
+const meN=()=>S&&UO(S.user)?UO(S.user).n:'';
+/* Novedades de liquidación cargadas en un parte (internas de la empresa) */
+const novCat=()=>(S.cat.novedades||[]);
+const novOf=(p,n)=>((p.nov||{})[n])||[];
+const novCount=p=>Object.values(p.nov||{}).reduce((a,l)=>a+l.length,0);
+/* Envío del día: un parte enviado hoy y todavía no aprobado se puede volver a editar */
+const sentAt=p=>{const h=[...(p.hist||[])].reverse().find(x=>/^(Enviado|Reenviado)/.test(x.a));return h?parseStamp(h.t).slice(0,10):''};
+const canReedit=p=>p.estado==='env'&&sentAt(p)===TODAY;
+/* Partes que el cliente observó alguna vez (su pestaña Observados) */
+const cliObs=p=>(p.hist||[]).some(h=>h.a==='Observado por el cliente');
+/* Usuarios creados por el administrador: de la clave se guarda solo su huella (SHA-256), nunca la clave */
+async function pwHash(id,pw){if(!(window.crypto&&crypto.subtle))throw new Error('Sin conexión segura');const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('vds-partes|'+id+'|'+pw));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function pwOk(u,pw){if(!u)return false;return u.ph?u.ph===await pwHash(u.id,pw):pw===PW}
+const idFromName=n=>{const w=norm(n).replace(/[^a-z ]/g,'').split(' ').filter(Boolean);return (w.length>1?w[0][0]+w[w.length-1]:w[0]||'').slice(0,20)};
 const jefeP=p=>(p.pers&&p.pers[0])||jefeOf(p.rec);
 function logA(accion,obj,det,mot,tipo){S.log.push({ts:tsNow(),who:meN()||'—',rol:rolLbl(S.user),accion,obj:obj||'',det:det||'',mot:mot||'',tipo:tipo||'parte'})}
 const offline=()=>!NET.online||!!S.simOff;
@@ -99,33 +122,36 @@ function prod(p){const r={};(p.ejec?p.ejec.reg:[]).filter(x=>x.c==='op'&&x.d).fo
 function checks(p){
   const e=p.ejec,out=[];if(!e)return out;
   if(!e.clima||e.clima.t===''||e.clima.r==='')out.push(['err','Faltan las condiciones climáticas','Inicio']);
+  else if(e.clima.v!==''&&Number(e.clima.r)<Number(e.clima.v))out.push(['warn','Las ráfagas no pueden ser menores que el viento: revisá los valores','Inicio']);
   if(!(e.check.charla&&e.check.epp))out.push(['err','Checklist de seguridad incompleto','Inicio']);
   if(!e.llegada)out.push(['err','Falta la hora de llegada a la instalación','Inicio']);
   if(p.ptw){const w=e.permiso||{};if(!w.num||!w.firmo||!w.hora)out.push(['err','Falta el permiso de trabajo firmado por la operadora','Inicio'])}
   const pres=e.personal.filter(x=>x.pres);
   if(!pres.length)out.push(['err','No hay personal presente','Personal']);
   pres.forEach(x=>{const h=hab(x.n,p.op,p.fecha);
-    if(habBad(h))out.push(['err',`${x.n}: ${h.st==='venc'?'habilitación vencida el '+fS(h.vence):'sin habilitación'} para ${OPS[p.op]}`,'Personal']);
+    if(habBad(h))out.push(['warn',`${x.n}: ${h.st==='venc'?'habilitación vencida el '+fS(h.vence):'sin habilitación'} para ${OPS[p.op]}`,'Personal','int']);
     const d=pDur(e,x);
     if(e.reg.length&&!d)out.push(['warn',`${x.n}: sin horario (falta la llegada o el último tramo del día)`,'Cierre']);
     else if(d>720)out.push(['warn',`${x.n}: jornada de ${fmtH(d)}, supera 12 h`,'Cierre']);
   });
   e.equipos.forEach(q=>{const h=hab(q.c,p.op,p.fecha),pk=lastKm(q.c,p);
-    if(habBad(h))out.push(['err',`${q.c} ${EQ[q.c]}: ${h.st==='venc'?'habilitación vencida el '+fS(h.vence):'sin habilitación'} para ${OPS[p.op]}`,'Equipos']);
+    if(habBad(h))out.push(['warn',`${q.c} ${EQ[q.c]}: ${h.st==='venc'?'habilitación vencida el '+fS(h.vence):'sin habilitación'} para ${OPS[p.op]}`,'Equipos','int']);
     if(q.km==='')out.push(['warn',`${q.c}: sin km actual`,'Equipos']);
-    else if(pk!==null&&Number(q.km)<pk)out.push(['warn',`${q.c}: el km actual es menor al último registrado (${num(pk)})`,'Equipos']);
+    else if(pk!==null&&Number(q.km)<pk)out.push([String(q.obs||'').trim()?'warn':'err',`${q.c}: el km actual (${num(q.km)}) es menor al último registrado (${num(pk)})${String(q.obs||'').trim()?' · explicado en la observación':'. Corregilo o explicá en la observación del equipo (ej. cambio de tablero)'}`,'Equipos']);
   });
   if(!e.reg.length)out.push(['err','No hay tareas ni tiempos registrados','Tareas']);
   const ops=e.reg.filter(x=>x.c==='op');
   if(e.reg.length&&!ops.length)out.push(['warn','No se hizo ninguna tarea operativa en el día','Tareas']);
-  ops.forEach(x=>{if(!x.d)out.push(['warn',`Tramo operativo ${x.de}–${x.a} sin tarea`,'Tareas']);else if(!(Number(x.q)>0))out.push(['warn',`${x.d}: sin cantidad`,'Tareas']);else if(!inCat(p.ct,x.d))out.push(['warn',`Tarea fuera del catálogo del contrato: ${x.d}`,'Tareas'])});
+  const otra=p.prev.includes(OTRA);
+  ops.forEach(x=>{if(!x.d)out.push(['warn',`Tramo operativo ${x.de}–${x.a} sin tarea`,'Tareas']);else if(!(Number(x.q)>0))out.push(['warn',`${x.d}: sin cantidad`,'Tareas']);else if(!inCat(p.ct,x.d)&&!otra)out.push(['warn',`Tarea fuera del catálogo del contrato: ${x.d}`,'Tareas'])});
   e.reg.filter(x=>x.c==='es'&&!x.d).forEach(x=>out.push(['warn',`Espera ${x.de}–${x.a} sin motivo`,'Tareas']));
   e.reg.filter(x=>x.c==='vi'&&!(Number(x.q)>0)).forEach(x=>out.push(['warn',`Parada por viento ${x.de}–${x.a} sin velocidad registrada`,'Tareas']));
   ops.filter(x=>x.d&&Number(x.q)>0&&!x.u).forEach(x=>out.push(['warn',`${x.d}: falta la unidad de la cantidad`,'Tareas']));
-  if([...pres.map(x=>x.n),...e.equipos.map(q=>q.c)].some(s=>hab(s,p.op,p.fecha).st==='nd'))out.push(['warn','No hay datos de habilitación cargados para validar el ingreso de personal y equipos','Personal']);
+  if([...pres.map(x=>x.n),...e.equipos.map(q=>q.c)].some(s=>hab(s,p.op,p.fecha).st==='nd'))out.push(['warn','No hay datos de habilitación cargados para validar el ingreso de personal y equipos','Personal','int']);
   const srt=e.reg.slice().sort((a,b)=>mins(a.de)-mins(b.de));
   for(let i=1;i<srt.length;i++){if(mins(srt[i].de)<mins(srt[i-1].a))out.push(['warn',`Tramos superpuestos: ${srt[i-1].de}–${srt[i-1].a} y ${srt[i].de}–${srt[i].a}`,'Tareas'])}
-  p.prev.filter(d=>!ops.some(x=>x.d===d)).forEach(d=>out.push(['warn',`Tarea prevista sin informar hoy: ${d}`,'Tareas']));
+  p.prev.filter(d=>d!==OTRA&&!ops.some(x=>x.d===d)).forEach(d=>out.push(['warn',`Tarea prevista sin informar hoy: ${d}`,'Tareas']));
+  if(otra&&!ops.some(x=>x.d&&!inCat(p.ct,x.d))&&!e.obs.trim())out.push(['warn','Estaba prevista "otra tarea": detallá cuál se hizo en Tareas y tiempos o en las observaciones','Cierre']);
   if(e.clima&&Number(e.clima.r)>=60&&!e.reg.some(t=>t.c==='vi'))out.push(['warn',`Ráfagas de ${e.clima.r} km/h sin parada por viento registrada`,'Tareas']);
   const esp=e.reg.filter(t=>t.c==='es').reduce((s,t)=>s+dur(t.de,t.a),0);
   if(esp>60)out.push([e.obs.trim()?'warn':'err',`Espera de operadora de ${fmtH(esp)}${e.obs.trim()?' (justificada en observaciones)':': justificar en observaciones'}`,e.obs.trim()?'Tareas':'Cierre']);

@@ -83,7 +83,7 @@ scr.addEventListener('click',ev=>{
 });
 scr.addEventListener('input',ev=>{
   if(CB&&ev.target===CB.inp){cbFilter();return}
-  const b=ev.target.dataset&&ev.target.dataset.bind;if(b&&!('rr' in ev.target.dataset&&ev.target.type==='search')){setBind(b,ev.target.value);save()}
+  const b=ev.target.dataset&&ev.target.dataset.bind;if(b&&!('rr' in ev.target.dataset&&ev.target.type==='search')){clampNum(ev.target);setBind(b,ev.target.value);save()}
 });
 scr.addEventListener('change',ev=>{
   if(ev.target.id==='f-import'){onImport(ev.target);return}
@@ -97,13 +97,20 @@ scr.addEventListener('change',ev=>{
     if(h&&m){delete UI.tp[path];setBind(path,h+':'+m)}else{if(!h&&!m)delete UI.tp[path];else UI.tp[path]={h,m};setBind(path,'')}
     render();return}
   const b=ev.target.dataset&&ev.target.dataset.bind;if(!b)return;
-  setBind(b,ev.target.value);
+  clampNum(ev.target);setBind(b,ev.target.value);
   if('rr' in ev.target.dataset)render();else save();
 });
+/* Números: nunca negativos ni fuera de rango. Los límites van en min/max del campo (ver LIM en config.js) */
+function clampNum(el){if(el.type!=='number'||el.value==='')return;const n=Number(el.value);if(!isFinite(n))return;
+  const mn=el.min!==''?Number(el.min):-Infinity,mx=el.max!==''?Number(el.max):Infinity;if(n>=mn&&n<=mx)return;
+  const v=Math.min(mx,Math.max(mn,n));el.value=String(v);toast(`Ese valor no es posible: va de ${num(mn)} a ${num(mx)}. Quedó en ${num(v)}.`)}
 scr.addEventListener('submit',ev=>{ev.preventDefault();
-  if(ev.target.id==='loginf'){const L=UI.login;const r=Object.keys(USERS).find(k=>USERS[k].id===L.u.trim().toLowerCase());
-    if(!r||L.p!==PW){S.log.push({ts:tsNow(),who:L.u.trim()||'(vacío)',rol:'',accion:'Ingreso fallido',obj:'',det:'Usuario o clave incorrectos',mot:'',tipo:'ingreso'});L.err='Usuario o contraseña incorrectos.'+(EVAL?' Probá con un usuario de prueba.':'');render();return}
-    enter(r,'Usuario y clave')}
+  if(ev.target.id==='loginf'){const L=UI.login,id=L.u.trim().toLowerCase(),r=Object.keys(ALLU()).find(k=>UO(k).id===id),u=r&&UO(r);
+    const fail=(det,msg)=>{S.log.push({ts:tsNow(),who:L.u.trim()||'(vacío)',rol:'',accion:'Ingreso fallido',obj:'',det,mot:'',tipo:'ingreso'});L.err=msg;render()};
+    pwOk(u,L.p).then(ok=>{if(!ok)return fail('Usuario o clave incorrectos','Usuario o contraseña incorrectos.'+(EVAL?' Probá con un usuario de prueba.':''));
+      if(u.off)return fail('Usuario desactivado','Este usuario está desactivado. Pedile al administrador que lo active.');
+      enter(r,'Usuario y clave')}).catch(()=>fail('Sin conexión segura','No se pudo verificar la clave. Abrí la app desde su dirección segura (https).'))}
+  if(ev.target.id==='usrf')submitUsr();
   if(ev.target.id==='trabf')submitTrab();
   if(ev.target.id==='habf')submitHab();
   if(ev.target.id==='whyf'){const m=UI.whyTxt.trim();if(!m){UI.modal.err='Escribí el motivo para poder guardar el cambio.';render();setTimeout(()=>{const t=$('#why-t');if(t)t.focus()},20);return}

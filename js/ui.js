@@ -78,7 +78,7 @@ function login(){
 
 /* ---------- estructura: menú lateral + barra superior + vista ---------- */
 function shell(){
-  const u=USERS[S.user],r=u.rol,[ti,tl]=themeLbl();
+  const u=meU(),r=u.rol,[ti,tl]=themeLbl();
   const navs={
     admin:[['p-plan','Planificación','gantt'],['v-inbox','Aprobación de partes','shield'],['p-list','Partes','list'],['p-hab','Habilitaciones','badge'],['c-inbox','Certificación','stamp'],['c-dash','Dashboard cliente','chart'],['a-log','Registro de actividad','log'],['a-conf','Configuración','cog']],
     planner:[['p-plan','Planificación','gantt'],['v-inbox','Aprobación de partes','shield'],['p-list','Partes','list'],['p-hab','Habilitaciones','badge']],
@@ -87,10 +87,10 @@ function shell(){
   if(r==='planner'&&isAdm())navs.push(['a-log','Registro de actividad','log'],['a-conf','Configuración','cog']);
   const badge=k=>{let n=0;
     if(k==='v-inbox')n=S.partes.filter(p=>p.estado==='env'&&!p.cola).length;
-    if(k==='o-day')n=S.partes.filter(p=>p.rec===USERS.operador.rec&&p.estado==='obs').length;
+    if(k==='o-day')n=S.partes.filter(p=>p.rec===meU().rec&&p.estado==='obs').length;
     if(k==='p-plan')n=S.trabajos.filter(t=>t.ext).length;
     if(k==='p-list')n=S.partes.filter(p=>p.estado==='obs').length;
-    if(k==='c-inbox')n=S.partes.filter(p=>p.estado==='apr'&&(r==='admin'||p.op===USERS.cliente.op)).length;
+    if(k==='c-inbox')n=S.partes.filter(p=>p.estado==='apr'&&(r==='admin'||p.op===meU().op)).length;
     return n?`<span class="cnt" aria-label="${n} pendientes">${n}</span>`:''};
   const curR=S.route==='o-edit'?(S.back||'o-day'):S.route;
   return `<aside class="rail${S.rmin?' min':''}"><div class="rtop">${brand()}<button class="rtog" data-a="rail" aria-label="${S.rmin?'Expandir menú':'Contraer menú'}" title="${S.rmin?'Expandir menú':'Contraer menú'}">${ic(S.rmin?'dbr':'dbl')}</button></div><div class="rrole">${ROLE_N[r]}${r==='planner'&&isAdm()?' · admin':''}</div>
@@ -107,11 +107,11 @@ function topbar(){
   if(R==='p-plan'){t='Planificación';s='Trabajos por contrato, recurso y día';right=date+nb}
   else if(R==='p-list'){t='Partes diarios';s='Todos los partes de la base';right=date+nb}
   else if(R==='p-hab'){t='Habilitaciones de ingreso';s=isAdm()?'Tocá una habilitación para editarla':'Personal y vehículos habilitados por operadora';right=date}
-  else if(R==='o-day'){t='Mi jornada';s=recOf(USERS.operador.rec).n+' · '+fDayM(TODAY);right=netChip()}
+  else if(R==='o-day'){t='Mi jornada';s=recOf(meU().rec).n+' · '+fDayM(TODAY);right=netChip()}
   else if(R==='o-edit'){const p=cur(),tt=trab(p.pl);return `<header class="top"><button class="btn ghost" data-a="nav" data-r="${S.back||'o-day'}">${ic('left')}${S.back&&S.back!=='o-day'?'Volver':'Mi jornada'}</button><div class="ttl"><h1>Parte diario <span class="mono">${p.id}</span></h1><div class="sub">${fDay(p.fecha)} · ${p.pl} día ${p.dia+1} de ${tt?tt.dias:'—'} · ${esc(locOf(p))}</div></div><span class="sp"></span><div class="tr">${ptTag(p.ptw)}${prioB(p.prio)}${pill(p.estado)}${role()==='operador'?netChip():''}</div></header>`}
   else if(R==='v-inbox'){t='Aprobación de partes';s='Planificación revisa y aprueba lo que cargan las cuadrillas';right=date}
-  else if(R==='c-inbox'){t='Certificación de partes';s=isAdm()?'Todas las operadoras':OPS[USERS.cliente.op]+' · contratos con Vientos del Sur';right=date}
-  else if(R==='c-dash'){t='Dashboard del servicio';s=(isAdm()?OPS[S.dop]:OPS[USERS.cliente.op])+' · datos de partes aprobados';right=date}
+  else if(R==='c-inbox'){t='Certificación de partes';s=isAdm()?'Todas las operadoras':OPS[meU().op]+' · contratos con Vientos del Sur';right=date}
+  else if(R==='c-dash'){t='Dashboard del servicio';s=(isAdm()?OPS[S.dop]:OPS[meU().op])+' · datos de partes aprobados';right=date}
   else if(R==='a-conf'){t='Configuración';s='Datos maestros, contratos, cuadrillas, usuarios y permisos';right=date}
   else if(R==='a-log'){t='Registro de actividad';s='Ingresos y cambios en partes, trabajos y configuración';right=date}
   return `<header class="top"><div class="ttl"><h1>${t}</h1><div class="sub">${esc(s)}</div></div><span class="sp"></span><div class="tr">${right}</div></header>`;

@@ -15,8 +15,10 @@ function setBind(path,val){
   if(root==='s'&&keys[0]==='lop'){if(S.lct!=='all'&&val!=='all'&&CT(S.lct).op!==val)S.lct='all'}
   if(root==='s'&&keys[0]==='dop'){S.dct='all';S.dimp='all'}
   if(root==='s'&&keys[0]==='dct'){S.dimp='all'}
-  if(root==='m'&&keys[0]==='ct'){const c=CT(val);const f=UI.modal.f;f.rec=c.recs.includes(f.rec)?f.rec:c.recs[0];f.pozo='';f.prev=[];f.imp=c.imps[0][0];f.ccsel=ccFor(val,f.rec);f.pers=(CREW[f.rec]||[]).slice();f.eqs=(VEH[f.rec]||[]).slice()}
-  if(root==='m'&&keys[0]==='rec'){const f=UI.modal.f;f.pers=(CREW[val]||[]).slice();f.eqs=(VEH[val]||[]).slice();f.ccsel=ccFor(f.ct,val)}
+  if(root==='m'&&UI.modal.kind==='trab'&&keys[keys.length-1]==='pozo'&&val==='__otra'){const f=UI.modal.f,o=keys.length>1?f.more[keys[1]]:f;o.uo=true;o.pozo='';setTimeout(()=>{const t=$('#m-pozo'+(keys.length>1?Number(keys[1])+1:0));if(t)t.focus()},30);return}
+  if(root==='m'&&UI.modal.kind==='trab'&&keys[0]==='op'){UI.modal.f.op=val;return setBind('m:ct',ctKeys(val)[0])}
+  if(root==='m'&&UI.modal.kind==='trab'&&keys[0]==='ct'){const c=CT(val);const f=UI.modal.f;f.op=c.op;f.uo=!(c.ubic||[]).length;f.more.forEach(o=>{o.pozo='';o.prev=[];o.uo=f.uo});f.rec=c.recs.includes(f.rec)?f.rec:c.recs[0];f.pozo='';f.prev=[];f.imp=c.imps[0][0];f.ccsel=ccFor(val,f.rec);f.pers=(CREW[f.rec]||[]).slice();f.eqs=(VEH[f.rec]||[]).slice()}
+  if(root==='m'&&UI.modal.kind==='trab'&&keys[0]==='rec'){const f=UI.modal.f;f.pers=(CREW[val]||[]).slice();f.eqs=(VEH[val]||[]).slice();f.ccsel=ccFor(f.ct,val)}
   if(root==='k'){logA('Catálogo de tareas modificado',keys[0],`${CT(keys[0]).tareas[keys[2]][0]}: ${keys[3]==='1'?'unidad':'categoría de equipo'} → ${val||'(vacío)'}`,'','config')}
   if(root==='q'){applyCat(S.cat);logA('Cuadrilla renombrada',S.cat.cuadrillas[keys[0]].id,val,'','config')}
   if(root==='e'&&keys[0]==='reg'){const p=cur(),r=p.ejec.reg[keys[1]];
@@ -30,15 +32,15 @@ function moveT(t,inicio,dias,why){
   logA(a.d!==dias&&a.i===inicio?'Duración modificada':'Trabajo reprogramado',t.id,txt,why||'','trabajo');
   const cl=clashes(t);toast(`${t.id} · ${txt}${cl.length?' · comparte días con '+cl.map(x=>x.id).join(', '):''}`);
 }
-const whoCli=p=>role()==='cliente'?USERS.cliente.n+' · '+OPS[p.op]:meN()+' (admin)';
+const whoCli=p=>role()==='cliente'?meN()+' · '+OPS[p.op]:meN()+' (admin)';
 function askWhy(title,desc,ok,fn){UI.whyBack=UI.modal;UI.whyFn=fn;UI.whyTxt='';UI.modal={kind:'why',title,desc,ok,err:''};render();setTimeout(()=>{const t=$('#why-t');if(t)t.focus()},30)}
 function diffParte(b,p){const e0=b.ejec||{},e1=p.ejec||{},J=JSON.stringify,ch=[];
   [['check','checklist'],['llegada','llegada'],['permiso','permiso'],['clima','clima'],['personal','personal'],['equipos','equipos'],['reg','tareas y tiempos'],['obs','observaciones'],['fotos','fotos'],['firma','firma']].forEach(([k,l])=>{if(J(e0[k])!==J(e1[k]))ch.push(l)});
-  if(b.sup!==p.sup||b.rt!==p.rt)ch.push('responsables');if(b.fin!==p.fin||J(b.ext)!==J(p.ext)||b.cierreObs!==p.cierreObs)ch.push('cierre');return ch}
+  if(b.sup!==p.sup||b.rt!==p.rt)ch.push('responsables');if(b.fin!==p.fin||J(b.ext)!==J(p.ext)||b.ejec.obs!==p.ejec.obs)ch.push('cierre');return ch}
 function discardEdit(){const p=cur();if(p&&UI.editSnap){const b=JSON.parse(UI.editSnap);Object.keys(p).forEach(k=>{if(!(k in b))delete p[k]});Object.assign(p,b)}UI.editSnap=null;UI.tp={}}
 /* Al volver la señal se envían los partes que quedaron en cola */
 function syncQueue(){const q=S.partes.filter(p=>p.cola);q.forEach(p=>{delete p.cola;p.hist.push({t:nowT(),who:'Sistema',a:'Sincronizado con la base',c:''})});return q.length}
-function enter(r,how){S.user=r;S.route=HOME[USERS[r].rol];S.back=null;S.rmin=USERS[r].rol==='operador';UI.login={u:'',p:'',err:'',show:false,demo:false};UI.drawer=null;UI.modal=null;logA('Ingreso','',how,'','ingreso');render()}
+function enter(r,how){S.user=r;S.route=HOME[UO(r).rol];S.back=null;S.rmin=UO(r).rol==='operador';S.oday=0;UI.login={u:'',p:'',err:'',show:false,demo:false};UI.drawer=null;UI.modal=null;logA('Ingreso','',how,'','ingreso');render()}
 const A={
   demo:d=>enter(d.r,'Usuario de prueba'),
   'l-demo':()=>{UI.login.demo=!UI.login.demo;UI.login.err='';render()},
@@ -68,7 +70,7 @@ const A={
   't-dias':d=>{const t=trab(UI.drawer);const nd=t.dias+Number(d.d);if(nd<minDias(t)||nd>30)return;moveT(t,t.inicio,nd);render()},
   't-ord':d=>{const t=trab(UI.drawer),o=Number(d.o);if((t.orden||0)===o)return;const txt=`Orden en el día: ${ORDS[t.orden||0][1]} → ${ORDS[o][1]}`;t.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Orden del día modificado',t.id,txt,'','trabajo');t.orden=o;render()},
   't-nohora':()=>{setBind('d:hora','');UI.tp={};render()},
-  'm-nohora':()=>{UI.modal.f.hora='';delete UI.tp['m:hora'];render()},
+  'm-nohora':d=>{const f=UI.modal.f,i=Number(d.i||-1),o=i<0?f:f.more[i];o.hora='';delete UI.tp[i<0?'m:hora':`m:more.${i}.hora`];render()},
   'o-pauto':d=>{const x=cur().ejec.personal[Number(d.i)];x.ini='';x.fin='';delete x.zona;delete x.out;delete x.base;Object.keys(UI.tp).filter(k=>k.startsWith(`e:personal.${d.i}.`)).forEach(k=>delete UI.tp[k]);toast(`${x.n}: vuelve al horario automático`);render()},
   't-prio':d=>{const t=trab(UI.drawer);if(t.prio===d.p)return;const txt=`Prioridad: ${PRIO[t.prio]} → ${PRIO[d.p]}`;t.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Prioridad modificada',t.id,txt,'','trabajo');t.prio=d.p;render()},
   'x-ok':d=>{const t=trab(d.id);const x=t.ext;t.ext=null;t.hist.push({t:nowT(),who:meN(),a:`Extensión aprobada: +${x.dias} día(s)`,c:x.motivo});moveT(t,t.inicio,t.dias+x.dias,'Pedido de '+x.who+': '+x.motivo);if(!S.trabajos.some(y=>y.ext))UI.reqs=false;render()},
@@ -84,7 +86,11 @@ const A={
   'm-ptw':d=>{UI.modal.f.ptw=d.v==='1';render()},
   'm-prio':d=>{UI.modal.f.prio=d.p;render()},
   'm-dias':d=>{const f=UI.modal.f;const ed=UI.modal.edit?trab(UI.modal.edit):null;f.dias=Math.max(ed?minDias(ed):1,Math.min(30,f.dias+Number(d.d)));render()},
-  'm-tarea':d=>{const f=UI.modal.f;f.prev=f.prev.includes(d.t)?f.prev.filter(x=>x!==d.t):[...f.prev,d.t];UI.modal.err.prev='';render()},
+  'm-tadd':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];if(!o.prev.includes(d.n))o.prev.push(d.n);if(UI.modal.err.jobs)delete UI.modal.err.jobs[Number(d.i)+1];render()},
+  'm-tdel':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];o.prev=o.prev.filter(x=>x!==d.t);render()},
+  'm-ulist':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];o.uo=false;o.pozo='';render()},
+  'm-jadd':()=>{const f=UI.modal.f;f.more.push({pozo:'',uo:!(CT(f.ct).ubic||[]).length,prev:[],hora:''});render();setTimeout(()=>{const b=$('.jlist');if(b)b.scrollTop=b.scrollHeight},30)},
+  'm-jdel':d=>{const f=UI.modal.f;f.more.splice(Number(d.i),1);UI.modal.err.jobs={};render()},
   'm-padd':d=>{const f=UI.modal.f;if(!f.pers.includes(d.n))f.pers.push(d.n);UI.modal.err.pers='';render()},
   'm-pdel':d=>{const f=UI.modal.f;f.pers=f.pers.filter(x=>x!==d.n);render()},
   'm-eadd':d=>{const f=UI.modal.f;if(!f.eqs.includes(d.n))f.eqs.push(d.n);render()},
@@ -97,7 +103,11 @@ const A={
   'a-cancel':()=>{const p=cur();discardEdit();toast(`Edición de ${p.id} descartada`);S.route=S.back||'p-list';render()},
   'a-save':()=>{const p=cur();const ch=diffParte(JSON.parse(UI.editSnap||'{}'),p);if(!ch.length){discardEdit();toast('No hubo cambios para guardar');S.route=S.back||'p-list';render();return}
     askWhy(`Guardar cambios en ${p.id}`,`Cambió: ${ch.join(', ')}.`,'Guardar cambios',m=>{UI.editSnap=null;p.hist.push({t:nowT(),who:meN(),a:'Editado por administración: '+ch.join(', '),c:m});logA('Parte editado',p.id,'Cambió: '+ch.join(', '),m,'parte');toast(`${p.id} guardado`);S.route=S.back||'p-list';UI.drawer=null})},
-  'a-perm':d=>{const u=USERS[d.k],on=!S.adm[d.k];askWhy(`${on?'Dar':'Quitar'} permisos de administración`,`${u.n} ${on?'va a poder corregir partes, cambiar estados, editar habilitaciones y catálogos y ver el registro de actividad':'vuelve a tener solo planificación y aprobación de partes'}.`,on?'Dar permisos':'Quitar permisos',m=>{S.adm[d.k]=on;logA(on?'Permisos de administración otorgados':'Permisos de administración quitados',u.n,'',m,'config');toast(`${u.n}: permisos de administración ${on?'activados':'quitados'}`)})},
+  'u-new':()=>{UI.modal={kind:'usr',f:{k:'',n:'',id:'',rol:'operador',rec:(RECURSOS[0]||{}).id||'',op:Object.keys(OPS)[0]||'',cargo:'',pw:''},err:''};render();setTimeout(()=>{const t=$('#u-n');if(t)t.focus()},30)},
+  'u-rol':d=>{UI.modal.f.rol=d.v;UI.modal.err='';render()},
+  'u-pw':d=>{const u=UO(d.k);UI.modal={kind:'usr',f:{k:d.k,n:u.n,pw:''},err:''};render();setTimeout(()=>{const t=$('#u-pw');if(t)t.focus()},30)},
+  'u-off':d=>{const u=S.users[d.k],off=!u.off;askWhy(`${off?'Desactivar':'Activar'} a ${u.n}`,off?`${u.n} no va a poder ingresar a la app. Sus partes y registros quedan como están.`:`${u.n} vuelve a poder ingresar con su usuario y clave.`,off?'Desactivar':'Activar',m=>{u.off=off;logA(off?'Usuario desactivado':'Usuario activado',u.id,u.n+' · '+ROLE_N[u.rol],m,'config');toast(`${u.n} ${off?'desactivado':'activado'}`)})},
+  'a-perm':d=>{const u=UO(d.k),on=!S.adm[d.k];askWhy(`${on?'Dar':'Quitar'} permisos de administración`,`${u.n} ${on?'va a poder corregir partes, cambiar estados, editar habilitaciones y catálogos y ver el registro de actividad':'vuelve a tener solo planificación y aprobación de partes'}.`,on?'Dar permisos':'Quitar permisos',m=>{S.adm[d.k]=on;logA(on?'Permisos de administración otorgados':'Permisos de administración quitados',u.n,'',m,'config');toast(`${u.n}: permisos de administración ${on?'activados':'quitados'}`)})},
   'g-type':d=>{S.gt=d.v;render()},
   'c-addubi':d=>{const v=(UI.newU[d.ct]||'').trim();if(!v){toast('Escribí la ubicación');render();return}const c=CT(d.ct);c.ubic=c.ubic||[];if(c.ubic.some(u=>norm(u)===norm(v))){toast('Esa ubicación ya está cargada');render();return}c.ubic.push(v);UI.newU[d.ct]='';logA('Ubicación agregada al catálogo',d.ct,v,'','config');toast(`Ubicación agregada a ${d.ct}`);render()},
   'c-delubi':d=>{const c=CT(d.ct);const x=c.ubic.splice(Number(d.i),1)[0];logA('Ubicación quitada del catálogo',d.ct,x,'','config');toast(`Quitada: ${x}`);render()},
@@ -119,6 +129,10 @@ const A={
     logA('Datos maestros importados',r.cat.file,`${Object.keys(r.contratos).length} contratos · ${r.cat.cuadrillas.length} cuadrillas · ${r.cat.personal.length} personas · ${Object.keys(r.cat.equipos).length} equipos`,f.mot.trim(),'config');
     UI.imp=null;UI.modal=null;UI.drawer=null;toast('Datos importados. Se generó una planificación de ejemplo para probar los flujos.');render()},
   'd-clrdate':()=>{S.dfrom='';S.dto='';render()},
+  'c-clrdate':()=>{S.cfrom='';S.cto='';render()},
+  'xls-nov':()=>exportNov(listRows()),
+  'nv-add':d=>{const p=byId(d.id);if(!p||!canPlan())return;p.nov=p.nov||{};const l=p.nov[d.p]=p.nov[d.p]||[];if(!l.includes(d.n)){l.push(d.n);p.hist.push({t:nowT(),who:meN(),a:'Novedad cargada (interna)',c:`${d.p}: ${d.n}`});logA('Novedad cargada',p.id,`${d.p}: ${d.n}`,'','parte')}render()},
+  'nv-del':d=>{const p=byId(d.id);if(!p||!canPlan())return;const l=novOf(p,d.n).filter(x=>x!==d.c);if(l.length)p.nov[d.n]=l;else delete p.nov[d.n];p.hist.push({t:nowT(),who:meN(),a:'Novedad quitada (interna)',c:`${d.n}: ${d.c}`});logA('Novedad quitada',p.id,`${d.n}: ${d.c}`,'','parte');render()},
   'xls-dash':()=>exportDash(),
   'xls-log':()=>exportLog(),
   'why-cancel':()=>{UI.modal=UI.whyBack||null;UI.whyFn=null;UI.whyBack=null;render()},
@@ -127,8 +141,14 @@ const A={
   'c-addimp':d=>{const n=UI.newI[d.ct];const cd=(n&&n.c||'').trim().toUpperCase().replace(/\s+/g,'-');if(!cd){toast('Escribí el código de la imputación');render();return}const c=CT(d.ct);if(c.imps.some(x=>x[0].toUpperCase()===cd)){toast('Esa imputación ya existe');render();return}c.imps.push([cd,(n.n||'').trim(),'']);logA('Imputación agregada',d.ct,[cd,(n.n||'').trim()].filter(Boolean).join(' · '),'','config');UI.newI[d.ct]={c:'',n:''};toast(`Imputación ${cd} agregada a ${d.ct}`);render()},
   'c-delimp':d=>{const c=CT(d.ct);const x=c.imps[Number(d.i)];if(S.trabajos.some(t=>t.ct===d.ct&&t.imp===x[0])){toast(`${x[0]} está en uso por trabajos: no se puede quitar`);render();return}if(c.imps.length<=1){toast('El contrato necesita al menos una imputación');render();return}c.imps.splice(Number(d.i),1);logA('Imputación quitada',d.ct,[x[0],x[1]].filter(Boolean).join(' · '),'','config');toast(`Quitada: ${x[0]}`);render()},
   'sent-ok':()=>{UI.modal=null;S.route='o-day';render()},
-  'o-start':d=>{const t=trab(d.pl);const h0=t.hist[0]||{t:nowT(),who:APROB};const p=Object.assign(snap(t,TODAY),{id:nextPD(),estado:'curso',dec:null,cert:null,ext:null,cierreObs:'',hist:[{t:h0.t,who:h0.who,a:'Planificado',c:''},{t:nowT(),who:USERS.operador.n,a:'Parte iniciado',c:''}]});
+  'o-start':d=>{const t=trab(d.pl);const h0=t.hist[0]||{t:nowT(),who:APROB};const p=Object.assign(snap(t,TODAY),{id:nextPD(),estado:'curso',dec:null,cert:null,ext:null,nov:{},hist:[{t:h0.t,who:h0.who,a:'Planificado',c:''},{t:nowT(),who:meN(),a:'Parte iniciado',c:''}]});
     p.fin=p.dia>=t.dias-1?'fin':'sigue';p.ejec=newEjec(p);S.partes.push(p);logA('Parte iniciado',p.id,`${t.id} · día ${p.dia+1} de ${t.dias}`,'','parte');S.sel=p.id;S.step=0;S.back='o-day';go('o-edit')},
+  'o-day':d=>{S.oday=Number(d.i)||0;render()},
+  'o-reedit':d=>{const p=byId(d.id);if(!p||!canReedit(p))return;const t=trab(p.pl);p.estado='curso';p.cola=false;p.reed=true;
+    if(t&&t.cierre&&t.cierre.parte===p.id){if(t.cierre.anticipado&&t.cierre.dias0)t.dias=t.cierre.dias0;t.cierre=null;t.hist.push({t:nowT(),who:meN(),a:`Cierre en suspenso: se reabrió ${p.id} para corregirlo`,c:''})}
+    if(t&&t.ext&&t.ext.parte===p.id){t.ext=null;t.hist.push({t:nowT(),who:meN(),a:`Pedido de días en suspenso: se reabrió ${p.id} para corregirlo`,c:''})}
+    p.hist.push({t:nowT(),who:meN(),a:'Reabierto por el jefe para corregir',c:'Enviado hoy y todavía sin aprobar'});logA('Parte reabierto para corregir',p.id,'Enviado hoy y todavía sin aprobar','','parte');
+    toast(`${p.id} volvió a edición. Cuando termines, envialo de nuevo.`);S.sel=p.id;S.back='o-day';S.step=3;go('o-edit')},
   'o-open':d=>{S.sel=d.id;S.back='o-day';const p=byId(d.id);S.step=0;if(p.estado==='obs'){const c=errs(p)[0];if(c)S.step=STEP_OF[c[2]]}go('o-edit')},
   'o-step':d=>{S.step=Number(d.i);render()},
   'o-check':d=>{const e=cur().ejec;e.check[d.k]=!e.check[d.k];render()},
@@ -149,12 +169,12 @@ const A={
   'o-sigclear':()=>{cur().ejec.firma=null;render()},
   'o-fin':d=>{const p=cur();p.fin=d.v;if(d.v==='ext'&&!p.ext)p.ext={dias:1,motivo:''};render()},
   'o-extd':d=>{const p=cur();p.ext.dias=Math.max(1,Math.min(10,p.ext.dias+Number(d.d)));render()},
-  'o-send':()=>{const p=cur();if(errs(p).length)return;const re=p.estado==='obs';const t=trab(p.pl);const prev=p.dec,off=offline();p.estado='env';p.dec=null;if(off)p.cola=true;
-    p.hist.push({t:nowT(),who:USERS.operador.n,a:re?'Reenviado con correcciones':'Enviado para aprobación',c:''});
-    logA(re?'Parte reenviado con correcciones':'Parte enviado para aprobación',p.id,[p.fin==='fin'?'Cierra el trabajo '+t.id:p.fin==='ext'?`Pide ${p.ext.dias} día(s) más`:'',off?'Cargado sin señal':''].filter(Boolean).join(' · '),re&&prev?'Responde a la observación de '+prev.who+': '+prev.com:'','parte');
-    if(p.fin==='fin'&&!t.cierre){const ant=p.dia<t.dias-1;t.cierre={fecha:p.fecha,parte:p.id,who:USERS.operador.n,t:nowT(),obs:p.cierreObs,anticipado:ant};
-      if(ant){const old=t.dias;t.dias=p.dia+1;t.hist.push({t:nowT(),who:USERS.operador.n,a:`Trabajo cerrado antes de lo planificado: ${old} → ${t.dias} días`,c:p.cierreObs})}else t.hist.push({t:nowT(),who:USERS.operador.n,a:'Trabajo cerrado por el jefe de cuadrilla',c:p.cierreObs})}
-    if(p.fin==='ext'&&!t.ext){t.ext={dias:p.ext.dias,motivo:p.ext.motivo,who:USERS.operador.n,t:nowT(),parte:p.id};t.hist.push({t:nowT(),who:USERS.operador.n,a:`Pidió ${p.ext.dias} día(s) más`,c:p.ext.motivo})}
+  'o-send':()=>{const p=cur();if(errs(p).length)return;const re=p.estado==='obs',ree=!!p.reed;delete p.reed;const t=trab(p.pl);const prev=p.dec,off=offline();p.estado='env';p.dec=null;if(off)p.cola=true;
+    p.hist.push({t:nowT(),who:meN(),a:re?'Reenviado con correcciones':ree?'Reenviado con cambios del jefe':'Enviado para aprobación',c:''});
+    logA(re?'Parte reenviado con correcciones':ree?'Parte reenviado con cambios':'Parte enviado para aprobación',p.id,[p.fin==='fin'?'Cierra el trabajo '+t.id:p.fin==='ext'?`Pide ${p.ext.dias} día(s) más`:'',off?'Cargado sin señal':''].filter(Boolean).join(' · '),re&&prev?'Responde a la observación de '+prev.who+': '+prev.com:'','parte');
+    if(p.fin==='fin'&&!t.cierre){const ant=p.dia<t.dias-1;t.cierre={fecha:p.fecha,parte:p.id,who:meN(),t:nowT(),obs:p.ejec.obs,anticipado:ant,dias0:t.dias};
+      if(ant){const old=t.dias;t.dias=p.dia+1;t.hist.push({t:nowT(),who:meN(),a:`Trabajo cerrado antes de lo planificado: ${old} → ${t.dias} días`,c:p.ejec.obs})}else t.hist.push({t:nowT(),who:meN(),a:'Trabajo cerrado por el jefe de cuadrilla',c:p.ejec.obs})}
+    if(p.fin==='ext'&&!t.ext){t.ext={dias:p.ext.dias,motivo:p.ext.motivo,who:meN(),t:nowT(),parte:p.id};t.hist.push({t:nowT(),who:meN(),a:`Pidió ${p.ext.dias} día(s) más`,c:p.ext.motivo})}
     UI.modal={kind:'sent',id:p.id};render()},
   'v-filter':d=>{S.vf=d.f;S.vsel=null;UI.vcom='';UI.verr='';render()},
   'v-sel':d=>{S.vsel=d.id;UI.vcom='';UI.verr='';render()},
@@ -172,15 +192,31 @@ const A={
 function cuAdd(i,key,v){const x=S.cat.cuadrillas[i];if(!x||!v||x[key].includes(v))return;
   const other=S.cat.cuadrillas.find(y=>y!==x&&y[key].includes(v));if(other)other[key]=other[key].filter(n=>n!==v);
   x[key].push(v);applyCat(S.cat);logA(key==='pers'?'Persona asignada a cuadrilla':'Equipo asignado a cuadrilla',x.id,v+(other?` (antes en ${other.n})`:''),'','config');if(other)toast(`${v} pasó de ${other.n} a ${x.n}`);render()}
+async function submitUsr(){const M=UI.modal,f=M.f,err=e=>{M.err=e;render()};
+  const noSec='No se pudo guardar la clave. Abrí la app desde su dirección segura (https).';
+  if((f.pw||'').length<6)return err('La clave tiene que tener al menos 6 caracteres.');
+  if(f.k){const u=S.users[f.k];try{u.ph=await pwHash(u.id,f.pw)}catch(e){return err(noSec)}
+    logA('Clave restablecida',u.id,u.n,'','config');UI.modal=null;toast(`Clave nueva guardada para ${u.n}`);render();return}
+  const n=f.n.trim().replace(/\s+/g,' '),id=(f.id.trim()||idFromName(n)).toLowerCase();
+  if(n.split(' ').length<2)return err('Escribí el nombre y el apellido.');
+  if(!/^[a-z0-9._-]{3,20}$/.test(id))return err('El usuario lleva de 3 a 20 letras o números, sin espacios ni acentos.');
+  if(Object.values(ALLU()).some(u=>u.id===id))return err(`Ya existe el usuario "${id}". Elegí otro.`);
+  if(f.rol==='operador'&&!RECURSOS.some(r=>r.id===f.rec))return err('Elegí la cuadrilla.');
+  if(f.rol==='cliente'&&!OPS[f.op])return err('Elegí el cliente.');
+  let ph;try{ph=await pwHash(id,f.pw)}catch(e){return err(noSec)}
+  const ex=f.rol==='operador'?{rec:f.rec}:f.rol==='cliente'?{op:f.op}:{},det=f.rol==='operador'?recOf(f.rec).n:f.rol==='cliente'?OPS[f.op]:'';
+  const cargo=f.cargo.trim()||(f.rol==='operador'?'Jefe · '+det:f.rol==='cliente'?'Supervisor de contrato · '+det:ROLE_N[f.rol]);
+  S.users['u'+Date.now().toString(36)]=Object.assign({id,n,ini:iniOf(n),rol:f.rol,cargo,ph,off:false,by:meN(),at:TODAY},ex);
+  logA('Usuario creado',id,[n,ROLE_N[f.rol],det].filter(Boolean).join(' · '),'','config');
+  UI.modal=null;toast(`Usuario "${id}" creado`);render()}
 function submitTrab(){
-  const M=UI.modal,f=M.f;M.err={};
-  if(!f.pozo.trim())M.err.pozo='Indicá el pozo, la locación o la instalación.';
-  if(!f.prev.length)M.err.prev='Elegí al menos una tarea prevista.';
+  const M=UI.modal,f=M.f;M.err={jobs:{}};const jobs=[f,...(M.edit?[]:f.more)];
+  jobs.forEach((o,i)=>{const m=[!o.pozo.trim()&&'elegí o escribí la ubicación',!o.prev.length&&'elegí al menos una tarea prevista'].filter(Boolean);if(m.length)M.err.jobs[i]=(jobs.length>1?`Trabajo ${i+1}: `:'')+m.join(' y ')+'.'});
   if(!f.pers.length)M.err.pers='Asigná al menos una persona.';
   if(M.edit&&!(f.mot||'').trim())M.err.mot='Contá por qué se modifica el trabajo.';
-  if(M.err.pozo||M.err.prev||M.err.pers||M.err.mot){render();return}
-  const cU=CT(f.ct);cU.ubic=cU.ubic||[];const fu=cU.ubic.find(u=>norm(u)===norm(f.pozo));
-  if(fu)f.pozo=fu;else{cU.ubic.push(f.pozo.trim());logA('Ubicación agregada al catálogo',f.ct,f.pozo.trim(),'','config')}
+  if(Object.keys(M.err.jobs).length||M.err.pers||M.err.mot){render();return}
+  const cU=CT(f.ct);cU.ubic=cU.ubic||[];
+  jobs.forEach(o=>{const fu=cU.ubic.find(u=>norm(u)===norm(o.pozo));if(fu)o.pozo=fu;else{o.pozo=o.pozo.trim();cU.ubic.push(o.pozo);logA('Ubicación agregada al catálogo',f.ct,o.pozo,'','config')}});
   const ccx=(cU.ccs||[[cU.cc,cU.ccn]])[Number(f.ccsel)||0]||[cU.cc,cU.ccn];
   const vals={ct:f.ct,imp:f.imp,cc:ccx[0],ccn:ccx[1],rec:f.rec,yac:'',pozo:f.pozo.trim(),inicio:f.inicio,dias:f.dias,prio:f.prio,ptw:f.ptw,hora:mins(f.hora)!=null?f.hora:'',orden:Number(f.orden)||0,sup:f.sup,rt:f.rt,prev:f.prev.slice(),ind:f.ind.trim(),pers:f.pers.slice(),eqs:f.eqs.slice()};
   if(M.edit){const t=trab(M.edit);const ch=[];
@@ -188,11 +224,12 @@ function submitTrab(){
     if(t.prev.join('|')!==vals.prev.join('|'))ch.push('tareas');if(t.pers.join('|')!==vals.pers.join('|'))ch.push('personas');if(t.eqs.join('|')!==vals.eqs.join('|'))ch.push('equipos');
     Object.assign(t,vals);
     t.hist.push({t:nowT(),who:meN(),a:'Editado: '+(ch.join(', ')||'sin cambios'),c:f.mot.trim()});logA('Trabajo editado',t.id,'Cambió: '+(ch.join(', ')||'sin cambios'),f.mot.trim(),'trabajo');UI.modal=null;UI.drawer=t.id;toast(`${t.id} actualizado`);render();return}
-  const n=Math.max(0,...S.trabajos.map(t=>Number(t.id.slice(3))||0))+1;
-  const id='PL-'+String(n).padStart(3,'0');
-  const t=Object.assign({id,cierre:null,ext:null,hist:[{t:nowT(),who:meN(),a:'Planificado',c:''}]},vals);
-  S.trabajos.push(t);UI.modal=null;logA('Trabajo planificado',id,`${recOf(f.rec).n} · ${f.pozo.trim()} · ${fDay(f.inicio)} → ${fDay(tEnd(t))} · ${f.imp}`,'','trabajo');
-  const cl=clashes(t);toast(`${id} planificado · ${recOf(f.rec).n}, ${fDay(f.inicio)} → ${fDay(tEnd(t))}${cl.length?' · comparte días con '+cl.map(x=>x.id).join(', '):''}`);render();
+  const n0=Math.max(0,...S.trabajos.map(t=>Number(t.id.slice(3))||0))+1,o0=Number(f.orden)||(jobs.length>1?1:0);
+  const ts=jobs.map((o,i)=>{const id='PL-'+String(n0+i).padStart(3,'0');
+    const t=Object.assign({id,cierre:null,ext:null,hist:[{t:nowT(),who:meN(),a:jobs.length>1?`Planificado junto con ${jobs.map((_,k)=>'PL-'+String(n0+k).padStart(3,'0')).filter(x=>x!==id).join(', ')}`:'Planificado',c:''}]},vals,{pozo:o.pozo,prev:o.prev.slice(),hora:mins(o.hora)!=null?o.hora:'',orden:o0?Math.min(5,o0+i):0});
+    S.trabajos.push(t);logA('Trabajo planificado',id,`${recOf(f.rec).n} · ${o.pozo} · ${fDay(f.inicio)} → ${fDay(tEnd(t))} · ${f.imp}${jobs.length>1?' · '+ORDS[t.orden][1]+' del día':''}`,'','trabajo');return t});
+  UI.modal=null;const t=ts[0],cl=clashes(t).filter(x=>!ts.includes(x));
+  toast(`${ts.map(x=>x.id).join(', ')} ${ts.length>1?'planificados':'planificado'} · ${recOf(f.rec).n}, ${fDay(f.inicio)} → ${fDay(tEnd(t))}${cl.length?' · comparte días con '+cl.map(x=>x.id).join(', '):''}`);render();
 }
 function submitHab(){const f=UI.modal.f;const k=f.s+'|'+f.op;
   if(!f.sin&&!f.vence){f.err='Elegí la fecha de vencimiento.';render();return}
@@ -215,6 +252,9 @@ function onFiles(inp){
     toast(ok?`${ok} foto${ok>1?'s':''} agregada${ok>1?'s':''} al parte${bad?` · ${bad} no se pudo leer`:''}`:'No se pudo agregar la foto: el formato no es compatible o no hay espacio en el dispositivo');render()})();
 }
 async function onImport(inp){const file=inp.files&&inp.files[0];if(!file)return;
+  if(/\.csv$/i.test(file.name)){try{const l=fromNovCsv(await file.text());if(!l.length)throw new Error('no trae códigos');S.cat.novedades=l;const nl=l.filter(x=>x.t==='liq').length;
+      logA('Novedades importadas',file.name,`${l.length} siglas · ${nl} de liquidación · ${l.length-nl} de ausencia`,'','config');toast(`${l.length} novedades importadas · ${nl} de liquidación y ${l.length-nl} de ausencia`)}
+    catch(e){toast('No se pudo leer el CSV de novedades: '+(e&&e.message?e.message:'formato no reconocido'))}inp.value='';render();return}
   try{let res;if(/\.json$/i.test(file.name))res=fromJson(JSON.parse(await file.text()),file.name);
     else{await loadLib('xlsx');res=fromXlsx(XLSX.read(await file.arrayBuffer(),{cellDates:true}),file.name)}
     UI.imp=res;UI.modal={kind:'imp',f:{mot:''},err:''};render()}

@@ -4,7 +4,7 @@
    el ámbito global: config → util → data → import → state → ui
    → vistas → modals → export → actions → main.
    ============================================================ */
-const APP_VERSION='0.7.1';
+const APP_VERSION='0.8.0';
 const KEY='vds-partes-proto-7';          // estado guardado en el dispositivo (localStorage)
 const THEME_KEY='vds-theme';             // preferencia de modo diurno / nocturno
 const EVAL=true;                         // versión de evaluación: usuarios de prueba y datos locales
@@ -38,6 +38,13 @@ const STEPS=['Inicio','Personal y equipos','Tareas y tiempos','Cierre'];
 const STEP_OF={Inicio:0,Personal:1,Equipos:1,Tareas:2,Cierre:3};
 const STEP_SEC=[['Inicio'],['Personal','Equipos'],['Tareas'],['Cierre']];
 const ORDS=[[0,'Sin orden'],[1,'1º'],[2,'2º'],[3,'3º'],[4,'4º'],[5,'5º']];
+const OTRA='Otra tarea';                 // tarea prevista abierta: el operador detalla qué se hizo
+/* Rangos válidos de carga (no se aceptan valores negativos ni ilógicos) */
+const LIM={temp:[-30,50],viento:[0,150],km:[0,9999999],cant:[0,999999]};
+/* Novedades para liquidación de sueldos (internas: no salen en el PDF ni las ve el cliente).
+   Estas son de ejemplo; las reales se cargan con los datos maestros (JSON o CSV de novedades). */
+const D_NOV=[['VIANDA','liq'],['PERNOCTE','liq'],['DOBLE TURNO','liq'],['TRASLADO','liq'],['HORA EXTRA','liq'],['VACACIONES','aus'],['ENFERMEDAD','aus'],['FERIADO','aus'],['CURSO','aus']];
+const NOVT={liq:'Liquidación',aus:'Ausencia'};
 
 /* Librerías que se cargan solo cuando hacen falta (PDF y Excel) */
 const LIBS={
