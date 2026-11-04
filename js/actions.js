@@ -12,6 +12,7 @@ function setBind(path,val){
   for(let k=0;k<keys.length-1;k++)o=o[keys[k]];
   o[keys[keys.length-1]]=val;
   if(root==='v')UI.verr='';
+  if(root==='s'&&keys[0]==='nop'){S.nct='all'}
   if(root==='s'&&keys[0]==='fop'){if(S.fct!=='all'&&val!=='all'&&CT(S.fct).op!==val)S.fct='all'}
   if(root==='s'&&keys[0]==='lop'){if(S.lct!=='all'&&val!=='all'&&CT(S.lct).op!==val)S.lct='all'}
   if(root==='s'&&keys[0]==='dop'){S.dct='all';S.dimp='all'}
@@ -133,6 +134,13 @@ const A={
   'd-clrdate':()=>{S.dfrom='';S.dto='';render()},
   'c-clrdate':()=>{S.cfrom='';S.cto='';render()},
   'xls-nov':()=>exportNov(listRows()),
+  'xls-nls':()=>exportNls(),
+  'nl-clr':()=>{S.nfrom='';S.nto='';S.nop='all';S.nct='all';S.nrec='all';S.ncod='all';S.nest='all';render()},
+  'nl-emp':d=>{S.ntab='emp';S.nemp=d.n;S.nq='';render()},
+  'nl-sel':d=>{S.nemp=d.n;render()},
+  'nl-demo':()=>{const n=seedNov(S.partes,novCat());logA('Novedades de ejemplo generadas','NLS',`${n} novedades de prueba`,'','config');toast(`${n} novedades de ejemplo generadas`);render()},
+  'nl-val':()=>{UI.modal={kind:'nvv',f:{l:novCat().map(x=>({c:x.c,t:x.t,v:novHasV(x.c)?String(S.novv[x.c]):''}))}};render()},
+  'nl-vclr':()=>{UI.modal.f.l.forEach(x=>{x.v=''});render()},
   'nv-add':d=>{const p=byId(d.id);if(!p||!canPlan())return;p.nov=p.nov||{};const l=p.nov[d.p]=p.nov[d.p]||[];if(!l.includes(d.n)){l.push(d.n);logA('Novedad cargada',p.id,`${d.p}: ${d.n}`,'','parte')}render()},
   'nv-del':d=>{const p=byId(d.id);if(!p||!canPlan())return;const l=novOf(p,d.n).filter(x=>x!==d.c);if(l.length)p.nov[d.n]=l;else delete p.nov[d.n];logA('Novedad quitada',p.id,`${d.n}: ${d.c}`,'','parte');render()},
   'xls-dash':()=>exportDash(),
@@ -211,6 +219,10 @@ async function submitUsr(){const M=UI.modal,f=M.f,err=e=>{M.err=e;render()};
   S.users['u'+Date.now().toString(36)]=Object.assign({id,n,ini:iniOf(n),rol:f.rol,cargo,ph,off:false,by:meN(),at:TODAY},ex);
   logA('Usuario creado',id,[n,ROLE_N[f.rol],det].filter(Boolean).join(' · '),'','config');
   UI.modal=null;toast(`Usuario "${id}" creado`);render()}
+function submitNvv(){const l=UI.modal.f.l,nv=Object.assign({},S.novv),ch=[];
+  l.forEach(x=>{const s=String(x.v).trim(),a=S.novv[x.c],b=s!==''&&Number(s)>=0?Number(s):undefined;if(b===undefined)delete nv[x.c];else nv[x.c]=b;if(a!==b)ch.push(`${x.c}: ${a==null?'sin valor':money(a)} → ${b==null?'sin valor':money(b)}`)});
+  S.novv=nv;S.novvEx=false;if(ch.length)logA('Valores de novedades actualizados','NLS',`${ch.length} cambio${ch.length>1?'s':''}: ${ch.slice(0,12).join(' · ')}${ch.length>12?' · …':''}`,'','config');
+  UI.modal=null;toast(ch.length?`Valores guardados · ${ch.length} cambio${ch.length>1?'s':''}`:'Valores guardados');render()}
 function submitTrab(){
   const M=UI.modal,f=M.f;M.err={jobs:{}};const jobs=[f,...(M.edit?[]:f.more)];
   jobs.forEach((o,i)=>{const m=[!o.pozo.trim()&&'elegí o escribí la ubicación',!o.prev.length&&'elegí al menos una tarea prevista'].filter(Boolean);if(m.length)M.err.jobs[i]=(jobs.length>1?`Trabajo ${i+1}: `:'')+m.join(' y ')+'.'});

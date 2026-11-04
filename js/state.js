@@ -4,10 +4,10 @@ const UI={modal:null,drawer:null,toast:null,login:{u:'',p:'',err:'',show:false,d
 const NET={online:navigator.onLine!==false};
 
 function baseState(){return {user:null,route:'login',back:null,sel:null,step:0,vf:'env',vsel:null,vop:'all',cf:'apr',csel:null,pf:'all',lop:'all',lct:'all',lrec:'all',lq:'',hf:'p',hq:'',hbad:false,pv:'gantt',fop:'all',fct:'all',
-  gs:addDays(mondayOf(TODAY),-7),ws:mondayOf(TODAY),ms:TODAY.slice(0,7),dop:Object.keys(OPS)[0],dct:'all',dimp:'all',dfrom:'',dto:'',dtab:'res',itab:'res',ctab:'datos',cct:null,ccu:null,gt:'all',gu:'all',gq:'',rmin:false,simOff:false,oday:0,cfrom:'',cto:'',cctf:'all'}}
-function fresh(){const cat=demoCat();applyCat(cat);CTS=JSON.parse(JSON.stringify(CONTRATOS0));const s=seed();
+  gs:addDays(mondayOf(TODAY),-7),ws:mondayOf(TODAY),ms:TODAY.slice(0,7),dop:Object.keys(OPS)[0],dct:'all',dimp:'all',dfrom:'',dto:'',dtab:'res',itab:'res',ctab:'datos',cct:null,ccu:null,gt:'all',gu:'all',gq:'',rmin:false,simOff:false,oday:0,cfrom:'',cto:'',cctf:'all',ntab:'gen',nemp:null,nq:'',nfrom:'',nto:'',nop:'all',nct:'all',nrec:'all',ncod:'all',nest:'all'}}
+function fresh(){const cat=demoCat();applyCat(cat);CTS=JSON.parse(JSON.stringify(CONTRATOS0));const s=seed();seedNov(s.P,cat.novedades);
   Object.entries(CTS).forEach(([k,c])=>{c.ubic=[...new Set(s.T.filter(t=>t.ct===k).map(locOf))].sort();c.eqs=[...new Set(c.recs.flatMap(r=>VEH[r]||[]))]});
-  return Object.assign(baseState(),{v:7,cat,trabajos:s.T,partes:s.P,contratos:CTS,hab:seedHab(),adm:{planner:true,planner2:false},users:{},log:seedLog(s.T,s.P)})}
+  return Object.assign(baseState(),{v:7,cat,trabajos:s.T,partes:s.P,contratos:CTS,hab:seedHab(),adm:{planner:true,planner2:false},users:{},novv:D_NOVV(),novvEx:true,log:seedLog(s.T,s.P)})}
 /* Almacenamiento local del dispositivo. Cuando haya backend, load/save pasan a sincronizar con la API. */
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.v===7&&x.cat&&Array.isArray(x.partes)&&Array.isArray(x.trabajos)&&Array.isArray(x.log)){applyCat(x.cat);CTS=x.contratos;migrate(x);return Object.assign(baseState(),x)}}catch(e){}return null}
 /* Cambios de formato entre versiones guardadas en el dispositivo */
@@ -18,6 +18,10 @@ function migrate(x){
   x.partes.forEach(p=>{if(p.hist)p.hist=p.hist.filter(h=>!/^Novedad (cargada|quitada)/.test(h.a))}); // internas: no van en el historial, que sale en el PDF
   x.partes.forEach(p=>{if(p.cierreObs){if(p.ejec&&!String(p.ejec.obs||'').includes(p.cierreObs))p.ejec.obs=[p.ejec.obs,p.cierreObs].filter(Boolean).join('\n');delete p.cierreObs}});
   x.users=x.users||{};if(!x.cat.novedades)x.cat.novedades=D_NOV.map(([c,t])=>({c,t}));
+  // v0.9: catálogo completo de novedades sin repetidos (las 9 de ejemplo pasan a su código real) y valores en $ por novedad
+  const nv=x.cat.novedades;if(nv.length===9&&nv.some(n=>n.c==='PERNOCTE')){const eq={VIANDA:'VIANDA ADIC.',PERNOCTE:'ADIC.PERNOCT',VACACIONES:'VAC - AUS',ENFERMEDAD:'ENF - AUS',FERIADO:'FERIADO - AUS'};x.cat.novedades=D_NOV.map(([c,t])=>({c,t}));x.partes.forEach(p=>{Object.keys(p.nov||{}).forEach(n=>{p.nov[n]=p.nov[n].map(c=>eq[c]||c)})})}
+  else x.cat.novedades=novList(nv.map(n=>[n.c,n.t]));
+  if(!x.novv){x.novv=D_NOVV();x.novvEx=true}
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));UI.saveErr=false}catch(e){if(!UI.saveErr){UI.saveErr=true;toast('No queda espacio en el dispositivo para guardar los cambios. Sincronizá o liberá espacio antes de seguir.');setTimeout(render,0)}}}
 
@@ -32,7 +36,7 @@ const mediaDel=id=>mediaTx('readwrite',st=>st.delete(id)).catch(()=>{});
 function fotoSrc(f){if(f.src)return f.src;if(!f.id)return '';if(MEDIA.url[f.id])return MEDIA.url[f.id];
   if(!MEDIA.pend[f.id])MEDIA.pend[f.id]=mediaGet(f.id).then(b=>{if(b){MEDIA.url[f.id]=URL.createObjectURL(b);render()}}).catch(()=>{});return ''}
 async function fotoData(f){if(f.src)return f.src;if(!f.id)return null;const b=await mediaGet(f.id).catch(()=>null);if(!b)return null;return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res(null);r.readAsDataURL(b)})}
-function regenExamples(){const keep={cat:S.cat,contratos:S.contratos,hab:S.hab,adm:S.adm,users:S.users,log:S.log,user:S.user,route:S.route};applyCat(keep.cat);CTS=keep.contratos;const s=exampleSeed();S=Object.assign(baseState(),{v:7},keep,{trabajos:s.T,partes:s.P})}
+function regenExamples(){const keep={cat:S.cat,contratos:S.contratos,hab:S.hab,adm:S.adm,users:S.users,novv:S.novv,novvEx:S.novvEx,log:S.log,user:S.user,route:S.route};applyCat(keep.cat);CTS=keep.contratos;const s=exampleSeed();S=Object.assign(baseState(),{v:7},keep,{trabajos:s.T,partes:s.P})}
 
 /* ---------- accesos ---------- */
 const CT=id=>S.contratos[id];
@@ -96,6 +100,8 @@ const meN=()=>S&&UO(S.user)?UO(S.user).n:'';
 const novCat=()=>(S.cat.novedades||[]);
 const novOf=(p,n)=>((p.nov||{})[n])||[];
 const novCount=p=>Object.values(p.nov||{}).reduce((a,l)=>a+l.length,0);
+const novHasV=c=>!!S.novv&&S.novv[c]!=null;
+const novV=c=>Number((S.novv||{})[c])||0;
 /* Envío del día: un parte enviado hoy y todavía no aprobado se puede volver a editar */
 const sentAt=p=>{const h=[...(p.hist||[])].reverse().find(x=>/^(Enviado|Reenviado)/.test(x.a));return h?parseStamp(h.t).slice(0,10):''};
 const canReedit=p=>p.estado==='env'&&sentAt(p)===TODAY;

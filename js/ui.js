@@ -104,8 +104,8 @@ function login(){
 function shell(){
   const u=meU(),r=u.rol,[ti,tl]=themeLbl();
   const navs={
-    admin:[['p-plan','Planificación','gantt'],['v-inbox','Aprobación de partes','shield'],['p-list','Partes','list'],['p-hab','Habilitaciones','badge'],['c-inbox','Certificación','stamp'],['c-dash','Dashboard cliente','chart'],['a-log','Registro de actividad','log'],['a-conf','Configuración','cog']],
-    planner:[['p-plan','Planificación','gantt'],['v-inbox','Aprobación de partes','shield'],['p-list','Partes','list'],['p-hab','Habilitaciones','badge']],
+    admin:[['p-plan','Planificación','gantt'],['v-inbox','Aprobación de partes','shield'],['p-list','Partes','list'],['n-nls','NLS','wallet'],['p-hab','Habilitaciones','badge'],['c-inbox','Certificación','stamp'],['c-dash','Dashboard cliente','chart'],['a-log','Registro de actividad','log'],['a-conf','Configuración','cog']],
+    planner:[['p-plan','Planificación','gantt'],['v-inbox','Aprobación de partes','shield'],['p-list','Partes','list'],['n-nls','NLS','wallet'],['p-hab','Habilitaciones','badge']],
     operador:[['o-day','Mi jornada','day']],
     cliente:[['c-dash','Dashboard','chart'],['c-inbox','Certificación','stamp']]}[r].slice();
   if(r==='planner'&&isAdm())navs.push(['a-log','Registro de actividad','log'],['a-conf','Configuración','cog']);
@@ -130,6 +130,7 @@ function topbar(){
   const nb=`<button class="btn pri" data-a="p-new">${ic('plus')}Nueva planificación</button>`;
   if(R==='p-plan'){t='Planificación';s='Trabajos por contrato, recurso y día';right=date+nb}
   else if(R==='p-list'){t='Partes diarios';s='Todos los partes de la base';right=date+nb}
+  else if(R==='n-nls'){t='NLS · Novedades de liquidación de sueldos';s='Interno: cuánto se paga por novedades, por empleado y por parte';right=date}
   else if(R==='p-hab'){t='Habilitaciones de ingreso';s=isAdm()?'Tocá una habilitación para editarla':'Personal y vehículos habilitados por operadora';right=date}
   else if(R==='o-day'){t='Mi jornada';s=recOf(meU().rec).n+' · '+fDayM(TODAY);right=netChip()}
   else if(R==='o-edit'){const p=cur(),tt=trab(p.pl);return `<header class="top"><button class="btn ghost" data-a="nav" data-r="${S.back||'o-day'}">${ic('left')}${S.back&&S.back!=='o-day'?'Volver':'Mi jornada'}</button><div class="ttl"><h1>Parte diario <span class="mono">${p.id}</span></h1><div class="sub">${fDay(p.fecha)} · ${p.pl} día ${p.dia+1} de ${tt?tt.dias:'—'} · ${esc(locOf(p))}</div></div><span class="sp"></span><div class="tr">${ptTag(p.ptw)}${prioB(p.prio)}${pill(p.estado)}${role()==='operador'?netChip():''}</div></header>`}
@@ -144,6 +145,7 @@ function view(){
   switch(S.route){
     case 'p-plan':return `<div class="view">${vPlan()}</div>`;
     case 'p-list':return `<div class="view">${vList()}</div>`;
+    case 'n-nls':return `<div class="view">${vNls()}</div>`;
     case 'p-hab':return `<div class="view">${vHab()}</div>`;
     case 'o-day':return `<div class="view">${vDay()}</div>`;
     case 'o-edit':return `<div class="view flush">${vEdit()}</div>`;

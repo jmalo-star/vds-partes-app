@@ -4,7 +4,7 @@
    el ámbito global: config → util → data → import → state → ui
    → vistas → modals → export → actions → main.
    ============================================================ */
-const APP_VERSION='0.8.4';
+const APP_VERSION='0.9.0';
 const KEY='vds-partes-proto-7';          // estado guardado en el dispositivo (localStorage)
 const THEME_KEY='vds-theme';             // preferencia de modo diurno / nocturno
 const EVAL=true;                         // versión de evaluación: usuarios de prueba y datos locales
@@ -40,10 +40,11 @@ const STEP_SEC=[['Inicio'],['Personal','Equipos'],['Tareas'],['Cierre']];
 const ORDS=[[0,'Sin orden'],[1,'1º'],[2,'2º'],[3,'3º'],[4,'4º'],[5,'5º']];
 const OTRA='Otra tarea';                 // tarea prevista abierta: el operador detalla qué se hizo
 /* Rangos válidos de carga (no se aceptan valores negativos ni ilógicos) */
-const LIM={temp:[-30,50],viento:[0,150],km:[0,9999999],cant:[0,999999]};
-/* Novedades para liquidación de sueldos (internas: no salen en el PDF ni las ve el cliente).
-   Estas son de ejemplo; las reales se cargan con los datos maestros (JSON o CSV de novedades). */
-const D_NOV=[['VIANDA','liq'],['PERNOCTE','liq'],['DOBLE TURNO','liq'],['TRASLADO','liq'],['HORA EXTRA','liq'],['VACACIONES','aus'],['ENFERMEDAD','aus'],['FERIADO','aus'],['CURSO','aus']];
+const LIM={temp:[-30,50],viento:[0,150],km:[0,9999999],cant:[0,999999],monto:[0,999999999]};
+/* Novedades de liquidación de sueldos (NLS): internas, no salen en el PDF ni las ve el cliente.
+   Los montos en $ no van en el código: se cargan en NLS › Valores por novedad y quedan en el dispositivo. */
+const D_NOV=[...'MJO|M.FUNC|1/2 MNJO|REL|VIANDA ADIC.|FALTA COMEDOR|TTE|BACKUP|FRTP|DISP_DIA|DISP_NOCHE|DOBLE TURNO|CORRIDO|FRT|ADIC.PERNOCT|TRASLADO|HORA_FIN|CC26_BASE'.split('|').map(c=>[c,'liq']),
+  ...'CAMB.DIAG|VAC - AUS|LIC.CONV - AUS|PGREMIAL - AUS|ART - AUS|ENF - AUS|INH - AUS|STBY - AUS|PARO - AUS|FERIADO - AUS|ENF COV.19 - AUS|ASO - AUS|CURSO|CURSO.CAMPO|ACA - AUS|ASA - AUS|SUSP - AUS|DESV - AUS|R.PUESTO|FCD|HOMEOFFICE|FCN|BAJ.GREMIO|EXCEPCION|DSO|DISP_DIA - AUS|DISP_NOCHE - AUS|LIB - AUS|PESPECIAL.CH - AUS|FACT_CLIMATICO - AUS'.split('|').map(c=>[c,'aus'])];
 const NOVT={liq:'Liquidación',aus:'Ausencia'};
 
 /* Librerías que se cargan solo cuando hacen falta (PDF y Excel) */

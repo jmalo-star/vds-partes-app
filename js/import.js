@@ -8,7 +8,7 @@ const parseCC=s=>{s=String(s||'').trim();const ix=s.indexOf(' - ');return ix>0?[
 const IMP_RE=/^[A-Z0-9][A-Z0-9.\-]*$/;
 /* Novedades de liquidación: [{c:código,t:'liq'|'aus'}] sin repetidos */
 const novTipo=t=>/aus/i.test(String(t||''))?'aus':'liq';
-const novList=rows=>{const out=[];rows.forEach(([c,t])=>{c=String(c||'').trim();if(c&&!out.some(x=>x.c===c&&x.t===novTipo(t)))out.push({c,t:novTipo(t)})});return out};
+const novList=rows=>{const out=[];rows.forEach(([c,t])=>{c=String(c||'').trim();if(!c)return;const k=novTipo(t),o=out.find(x=>x.c===c);if(!o)out.push({c,t:k});else if(o.t!==k&&/aus\b/i.test(c))o.t='aus'});return out};
 /* CSV de novedades exportado del sistema de sueldos: id;tabla_id;codigo;tipo */
 function fromNovCsv(txt){const L=String(txt).replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());if(!L.length)throw new Error('el archivo está vacío');
   const sep=L[0].includes(';')?';':',',H=L[0].split(sep).map(norm),ic=H.indexOf('codigo'),it=H.indexOf('tipo');if(ic<0)throw new Error('falta la columna "codigo"');

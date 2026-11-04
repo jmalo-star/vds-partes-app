@@ -12,6 +12,8 @@ const addM=(h,m)=>{const t=((mins(h)+m)%1440+1440)%1440;return String(Math.floor
 const fmtH=m=>{const h=Math.floor(m/60),mm=Math.round(m%60);return h+' h'+(mm?' '+String(mm).padStart(2,'0'):'')};
 const hDec=m=>(m/60).toLocaleString('es-AR',{maximumFractionDigits:1});
 const num=n=>Number(n).toLocaleString('es-AR');
+const money=v=>'$ '+Math.round(Number(v)||0).toLocaleString('es-AR');
+const moneyC=v=>{v=Number(v)||0;return v>=1e6?'$ '+(v/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+' M':v>=1e4?'$ '+Math.round(v/1e3).toLocaleString('es-AR')+' mil':money(v)};
 
 const DIAS=['dom','lun','mar','mié','jue','vie','sáb'];
 const DIASL=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];

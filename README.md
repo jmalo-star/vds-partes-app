@@ -51,6 +51,7 @@ js/
   views-plan.js       # planificación (Gantt, recurso, mes), partes, habilitaciones
   views-parte.js      # operador: mi jornada y parte diario
   views-review.js     # aprobación, certificación y dashboard del cliente
+  views-nls.js        # NLS: dashboards de novedades de liquidación de sueldos
   views-admin.js      # configuración y registro de actividad
   modals.js           # ventanas: planificación, resumen del parte, importación
   export.js           # PDF y Excel
@@ -76,6 +77,7 @@ Los scripts se cargan en ese orden y comparten el ámbito global.
 - Las fotos se sacan con la cámara o se eligen de la galería, y se guardan en la base del dispositivo (IndexedDB) para no llenar el almacenamiento. Salen en el resumen del parte, en la aprobación y en el PDF, encuadradas sin cortes.
 - Aprobación del planner y certificación del cliente con firma, con el detalle del parte en pestañas.
 - Al aprobar, el planner carga las novedades de liquidación de sueldos por persona (siglas del catálogo de novedades). Son internas: no salen en el PDF ni en el Excel del cliente, y se exportan desde Partes con "Novedades a Excel". El catálogo se importa con el CSV del sistema de sueldos (`id;tabla_id;codigo;tipo`) desde Datos maestros.
+- Solapa NLS (planner y administración): dashboards de novedades de liquidación de sueldos, uno general y otro por empleado, con filtros, montos en $ y exportación a Excel. Los valores por novedad se cargan en la app y quedan en el dispositivo; no van en el código.
 - Certificación del cliente con filtros por fecha y contrato, y pestañas Por certificar, Certificados, Observados y Todos.
 - Dashboard del cliente con filtros y exportación a Excel. El gráfico de horas hombre sigue el rango de fechas (por semana si pasa de 62 días) y tiene ejes con título.
 - Registro de actividad con motivo obligatorio para los cambios de administración.

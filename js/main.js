@@ -111,6 +111,7 @@ scr.addEventListener('submit',ev=>{ev.preventDefault();
       if(u.off)return fail('Usuario desactivado','Este usuario está desactivado. Pedile al administrador que lo active.');
       enter(r,'Usuario y clave')}).catch(()=>fail('Sin conexión segura','No se pudo verificar la clave. Abrí la app desde su dirección segura (https).'))}
   if(ev.target.id==='usrf')submitUsr();
+  if(ev.target.id==='nvvf')submitNvv();
   if(ev.target.id==='trabf')submitTrab();
   if(ev.target.id==='habf')submitHab();
   if(ev.target.id==='whyf'){const m=UI.whyTxt.trim();if(!m){UI.modal.err='Escribí el motivo para poder guardar el cambio.';render();setTimeout(()=>{const t=$('#why-t');if(t)t.focus()},20);return}
@@ -127,6 +128,8 @@ document.addEventListener('pointerover',ev=>{
 });
 document.addEventListener('pointerout',ev=>{if(tipEl&&!(ev.relatedTarget&&tipEl.contains(ev.relatedTarget)))tipHide()});
 ['pointerdown','keydown','scroll'].forEach(n=>document.addEventListener(n,tipHide,true));
+document.addEventListener('focusin',ev=>{const el=ev.target.closest&&ev.target.closest('[data-ttl],[data-tip]');if(el&&el.matches(':focus-visible')){tipEl=el;const r=el.getBoundingClientRect();tipShow(el,r.x+r.width/2)}});
+document.addEventListener('focusout',tipHide);
 
 /* ---------- Gantt: arrastrar para mover, bordes para estirar o acortar ---------- */
 scr.addEventListener('pointerdown',ev=>{

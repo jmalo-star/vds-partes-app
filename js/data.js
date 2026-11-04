@@ -110,6 +110,14 @@ function genEjec(t,fecha){
     equipos:t.eqs.map((c,k)=>({c,km:String((KM0[c]??20000+k*5000)+(g+7)*70+62+k*8),obs:''})),
     reg,obs:'',fotos:[],firma:'seed'};
 }
+/* Montos y novedades de ejemplo (ficticios) para probar NLS. No pisan lo que ya esté cargado */
+const D_NOVV=()=>{const v={};D_NOV.forEach(([c,t],i)=>{v[c]=(t==='liq'?4000:12000)+((i*7)%9)*1500});return v};
+function seedNov(P,cat){
+  const h=s=>[...s].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7),pref=(k,l)=>{const a=cat.filter(x=>x.t===k).map(x=>x.c),b=l.filter(c=>a.includes(c));return b.length?b:a};
+  const L=pref('liq',['VIANDA ADIC.','TRASLADO','ADIC.PERNOCT','DOBLE TURNO','DISP_DIA','CORRIDO']),A=pref('aus',['ENF - AUS','VAC - AUS','CURSO','FERIADO - AUS']);let n=0;
+  P.filter(p=>p.ejec&&['env','obs','apr','cert'].includes(p.estado)).forEach(p=>{p.nov=p.nov||{};p.ejec.personal.forEach(x=>{if(p.nov[x.n])return;const k=h(p.id+x.n),m=k%100,l=[];if(m<60&&L.length)l.push(L[k%L.length]);if(m<20&&L.length>1)l.push(L[(k+1)%L.length]);if(m>=88&&A.length)l.push(A[k%A.length]);if(l.length){p.nov[x.n]=l;n+=l.length}})});
+  return n;
+}
 function mkParte(t,fecha,estado,patch){
   const p=Object.assign(snap(t,fecha),{estado,ejec:estado==='plan'?null:genEjec(t,fecha),dec:null,cert:null,fin:null,ext:null,nov:{},hist:[{t:(t.hist[0]||{}).t||P0(),who:(t.hist[0]||{}).who||APROB,a:'Planificado',c:''}]});
   p.fin=p.dia>=t.dias-1?'fin':'sigue';
@@ -126,7 +134,7 @@ function seed(){
   const T=seedTrabajos(),P=[],R=dRel;
   const O={
     ['PL-090|'+R(-3)]:['apr',p=>{p.ejec.obs='Línea de 4 pulgadas montada y probada. Locación entregada limpia.'}],
-    ['PL-093|'+R(-2)]:['apr',p=>{p.nov={[p.pers[0]]:['VIANDA'],[p.pers[1]]:['VIANDA']}}],['PL-094|'+R(-2)]:'apr',
+    ['PL-093|'+R(-2)]:'apr',['PL-094|'+R(-2)]:'apr',
     ['PL-093|'+R(-1)]:['env',p=>{const e=p.ejec;e.llegada='07:20';e.personal[0].fin='18:40';
       e.reg=[{c:'tr',de:'06:30',a:'07:20',d:'Base → Escalante',q:'',u:'',det:''},{c:'op',de:'07:20',a:'10:00',d:'Desmalezado',q:'1200',u:'m²',det:'Sector sur y accesos'},{c:'es',de:'10:00',a:'11:30',d:'Permiso de trabajo',q:'',u:'',det:'Supervisor AUP llegó 11:25'},{c:'op',de:'11:30',a:'13:00',d:'Armado de cerco perimetral',q:'30',u:'m',det:'Lado norte'},{c:'rf',de:'13:00',a:'13:30',d:'',q:'',u:'',det:''},{c:'op',de:'13:30',a:'18:20',d:'Armado de cerco perimetral',q:'55',u:'m',det:'Lado este'},{c:'tr',de:'18:20',a:'19:10',d:'Regreso a base',q:'',u:'',det:''}];
       e.permiso.hora='11:25';

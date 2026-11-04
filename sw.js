@@ -3,9 +3,9 @@
    Archivos propios: red primero (siempre la última versión) y caché si no hay señal.
    Librerías y fuentes de CDN: caché primero (las URL tienen versión fija).
    Subí VERSION en cada publicación para limpiar la caché vieja. */
-const VERSION='vds-partes-0.8.4';
+const VERSION='vds-partes-0.9.0';
 const SHELL=['./','index.html','css/app.css','manifest.webmanifest',
-  'js/config.js','js/util.js','js/data.js','js/import.js','js/state.js','js/ui.js','js/views-plan.js','js/views-parte.js','js/views-review.js','js/views-admin.js','js/modals.js','js/export.js','js/actions.js','js/main.js',
+  'js/config.js','js/util.js','js/data.js','js/import.js','js/state.js','js/ui.js','js/views-plan.js','js/views-parte.js','js/views-review.js','js/views-nls.js','js/views-admin.js','js/modals.js','js/export.js','js/actions.js','js/main.js',
   'assets/img/login-noche.webp','assets/img/login-dia.webp','assets/img/campo.webp',
   'assets/icons/favicon.svg','assets/icons/icon-192.png','assets/icons/icon-512.png','assets/icons/maskable-512.png','assets/icons/apple-touch-icon.png'];
 const CDN=['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'];
