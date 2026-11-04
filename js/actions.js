@@ -5,7 +5,7 @@ function setBind(path,val){
   const i=path.indexOf(':'),root=path.slice(0,i),keys=path.slice(i+1).split('.');
   let o=bindObj(root);
   if(!o)return;
-  if(root==='d'&&keys[0]==='hora'&&o.hora!==val){const txt=`Hora de inicio: ${o.hora||'sin hora'} → ${val||'sin hora'}`;o.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Hora de inicio modificada',o.id,txt,'','trabajo')}
+  if(root==='d'&&keys[0]==='hora'&&o.hora!==val){const sim=Object.assign({},o,{hora:val}),oc=ordChoque(sim,o)[0];if(oc){toast(ordMalTxt(oc,sim));return}const txt=`Hora de inicio: ${o.hora||'sin hora'} → ${val||'sin hora'}`;o.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Hora de inicio modificada',o.id,txt,'','trabajo')}
   if(root==='e'&&keys[0]==='clima'){if(!o.clima)o.clima={t:'',v:'',r:'',dir:'O',cond:'Despejado',src:'manual'};o.clima.src='manual'}
   if(root==='e'&&keys[0]==='permiso'&&!o.permiso)o.permiso={num:'',firmo:'',hora:''};
   if(root==='m'&&UI.modal.kind==='trab'&&keys[keys.length-1]==='orden'){const f=UI.modal.f,me=keys.length>1?f.more[keys[1]]:f,ot=[f,...f.more].find(x=>x!==me&&String(x.orden)===String(val));if(ot)ot.orden=String(me.orden||0)}
@@ -27,6 +27,7 @@ function setBind(path,val){
     if(keys[2]==='c'){if(val==='vi'){r.u='km/h';r.q='';if(r.d&&ESP.includes(r.d))r.d=''}else if(val==='op'){r.u=unitOf(p.ct,r.d)||'';r.q=''}else{r.q='';r.u=''}if(val==='es'&&!ESP.includes(r.d))r.d='';if(val!=='es'&&ESP.includes(r.d))r.d=''}}
 }
 function moveT(t,inicio,dias,why){
+  const sim=Object.assign({},t,{inicio,dias}),oc=ordChoque(sim,t)[0];if(oc){toast(`${t.id} no se movió. ${ordMalTxt(oc,sim)}`);return false}
   const a={i:t.inicio,d:t.dias};t.inicio=inicio;t.dias=dias;
   const txt=a.d!==dias&&a.i===inicio?`Duración: ${a.d} → ${dias} días (hasta ${fDay(tEnd(t))})`:a.i!==inicio&&a.d===dias?`Reprogramado: ${fDay(a.i)} → ${fDay(inicio)}`:`Reprogramado: ${fDay(inicio)} → ${fDay(tEnd(t))} · ${dias} días`;
   t.hist.push({t:nowT(),who:meN(),a:txt,c:why||''});
@@ -69,12 +70,12 @@ const A={
   't-edit':()=>openTrab(null,null,UI.drawer),
   'close-drawer':()=>{UI.drawer=null;render()},
   't-dias':d=>{const t=trab(UI.drawer);const nd=t.dias+Number(d.d);if(nd<minDias(t)||nd>30)return;moveT(t,t.inicio,nd);render()},
-  't-ord':d=>{const t=trab(UI.drawer),o=Number(d.o);if((t.orden||0)===o)return;const txt=`Orden en el día: ${ORDS[t.orden||0][1]} → ${ORDS[o][1]}`;t.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Orden del día modificado',t.id,txt,'','trabajo');t.orden=o;render()},
+  't-ord':d=>{const t=trab(UI.drawer),o=Number(d.o);if((t.orden||0)===o)return;const sim=Object.assign({},t,{orden:o}),oc=ordChoque(sim,t)[0];if(oc){toast(ordMalTxt(oc,sim));render();return}const txt=`Orden en el día: ${ORDS[t.orden||0][1]} → ${ORDS[o][1]}`;t.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Orden del día modificado',t.id,txt,'','trabajo');t.orden=o;render()},
   't-nohora':()=>{setBind('d:hora','');UI.tp={};render()},
   'm-nohora':d=>{const f=UI.modal.f,i=Number(d.i||-1),o=i<0?f:f.more[i];o.hora='';delete UI.tp[i<0?'m:hora':`m:more.${i}.hora`];render()},
   'o-pauto':d=>{const x=cur().ejec.personal[Number(d.i)];x.ini='';x.fin='';delete x.zona;delete x.out;delete x.base;Object.keys(UI.tp).filter(k=>k.startsWith(`e:personal.${d.i}.`)).forEach(k=>delete UI.tp[k]);toast(`${x.n}: vuelve al horario automático`);render()},
   't-prio':d=>{const t=trab(UI.drawer);if(t.prio===d.p)return;const txt=`Prioridad: ${PRIO[t.prio]} → ${PRIO[d.p]}`;t.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Prioridad modificada',t.id,txt,'','trabajo');t.prio=d.p;render()},
-  'x-ok':d=>{const t=trab(d.id);const x=t.ext;t.ext=null;t.hist.push({t:nowT(),who:meN(),a:`Extensión aprobada: +${x.dias} día(s)`,c:x.motivo});moveT(t,t.inicio,t.dias+x.dias,'Pedido de '+x.who+': '+x.motivo);if(!S.trabajos.some(y=>y.ext))UI.reqs=false;render()},
+  'x-ok':d=>{const t=trab(d.id);const x=t.ext,sim=Object.assign({},t,{dias:t.dias+x.dias}),oc=ordChoque(sim,t)[0];if(oc){toast(`No se aprobó el pedido de ${t.id}. ${ordMalTxt(oc,sim)}`);render();return}t.ext=null;t.hist.push({t:nowT(),who:meN(),a:`Extensión aprobada: +${x.dias} día(s)`,c:x.motivo});moveT(t,t.inicio,t.dias+x.dias,'Pedido de '+x.who+': '+x.motivo);if(!S.trabajos.some(y=>y.ext))UI.reqs=false;render()},
   'x-no':d=>{const t=trab(d.id);const x=t.ext;t.ext=null;t.hist.push({t:nowT(),who:meN(),a:'Extensión rechazada',c:x.motivo});logA('Extensión rechazada',t.id,`Pedido de ${x.who}: +${x.dias} día(s) · ${x.motivo}`,'','trabajo');toast(`${t.id}: extensión rechazada. El trabajo termina el ${fDay(tEnd(t))}`);if(!S.trabajos.some(y=>y.ext))UI.reqs=false;render()},
   'a-del':()=>{const t=trab(UI.drawer);askWhy(`Eliminar ${t.id}`,`Se borra la planificación de ${recOf(t.rec).n} en ${t.pozo} (${fDay(t.inicio)} → ${fDay(tEnd(t))}). No tiene partes cargados.`,'Eliminar trabajo',m=>{S.trabajos=S.trabajos.filter(x=>x!==t);UI.drawer=null;logA('Trabajo eliminado',t.id,`${t.ct} · ${t.pozo} · ${fDay(t.inicio)} → ${fDay(tEnd(t))}`,m,'trabajo');toast(`${t.id} eliminado`)})},
   'a-reopen':()=>{const t=trab(UI.drawer);askWhy(`Reabrir ${t.id}`,'El trabajo vuelve a quedar abierto y se pueden cambiar sus fechas.','Reabrir trabajo',m=>{t.cierre=null;t.hist.push({t:nowT(),who:meN(),a:'Trabajo reabierto por administración',c:m});logA('Trabajo reabierto',t.id,'',m,'trabajo');toast(`${t.id} reabierto`)})},
@@ -215,7 +216,8 @@ function submitTrab(){
   jobs.forEach((o,i)=>{const m=[!o.pozo.trim()&&'elegí o escribí la ubicación',!o.prev.length&&'elegí al menos una tarea prevista'].filter(Boolean);if(m.length)M.err.jobs[i]=(jobs.length>1?`Trabajo ${i+1}: `:'')+m.join(' y ')+'.'});
   if(!f.pers.length)M.err.pers='Asigná al menos una persona.';
   if(M.edit&&!(f.mot||'').trim())M.err.mot='Contá por qué se modifica el trabajo.';
-  if(Object.keys(M.err.jobs).length||M.err.pers||M.err.mot){render();return}
+  const ordBad=jobs.some(o=>ordErrForm(f,o,M.edit?trab(M.edit):null));if(ordBad)toast('El orden y la hora de los trabajos no coinciden: revisalos para poder guardar');
+  if(ordBad||Object.keys(M.err.jobs).length||M.err.pers||M.err.mot){render();setTimeout(()=>{const b=$('.job.bad');if(b)b.scrollIntoView({block:'nearest'})},30);return}
   const cU=CT(f.ct);cU.ubic=cU.ubic||[];
   jobs.forEach(o=>{const fu=cU.ubic.find(u=>norm(u)===norm(o.pozo));if(fu)o.pozo=fu;else{o.pozo=o.pozo.trim();cU.ubic.push(o.pozo);logA('Ubicación agregada al catálogo',f.ct,o.pozo,'','config')}});
   const ccx=(cU.ccs||[[cU.cc,cU.ccn]])[Number(f.ccsel)||0]||[cU.cc,cU.ccn];

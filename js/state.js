@@ -59,6 +59,12 @@ const started=t=>tDays(t).some(f=>parteOf(t.id,f));
 const overl=(a,b)=>a.inicio<=tEnd(b)&&b.inicio<=tEnd(a);
 /* Trabajos de la misma cuadrilla en las mismas fechas: se permiten (varios trabajos en el día) y se ordenan */
 const clashes=t=>S.trabajos.filter(o=>o!==t&&o.rec===t.rec&&overl(o,t));
+/* Orden y hora son libres, pero si dos trabajos de la cuadrilla comparten día y tienen los dos datos, el de orden mayor empieza más tarde */
+const ordMal=(a,b)=>{const oa=Number(a.orden)||0,ob=Number(b.orden)||0,ha=mins(a.hora),hb=mins(b.hora);return !!oa&&!!ob&&oa!==ob&&ha!=null&&hb!=null&&(oa<ob?hb<=ha:ha<=hb)};
+const ordChoque=(t,self)=>S.trabajos.filter(o=>o!==self&&!o.cierre&&o.rec===t.rec&&overl(o,t)&&ordMal(o,t));
+const ordMalTxt=(a,b)=>{const [x,y]=Number(a.orden)<Number(b.orden)?[a,b]:[b,a],l=t=>`${ORDS[Number(t.orden)][1]} (${t.id?t.id+', ':''}${t.hora})`;return `El ${l(y)} tiene que empezar después del ${l(x)}. Cambiá el orden o la hora.`};
+/* Lo mismo para un trabajo de la ventana de planificación, contra los otros de la ventana y los ya cargados */
+function ordErrForm(f,o,self){const t=Object.assign({},o,{rec:f.rec,inicio:f.inicio,dias:f.dias}),x=[f,...(f.more||[])].find(y=>y!==o&&Number(y.orden)<Number(o.orden)&&ordMal(y,o));if(x)return ordMalTxt(x,o);const c=ordChoque(t,self)[0];return c?ordMalTxt(c,t):''}
 const ordKey=t=>[t.orden||9,t.hora||'99:99',t.inicio,t.id].join('|');
 const byOrd=(a,b)=>((a.orden||9)-(b.orden||9))||(a.hora||'99:99').localeCompare(b.hora||'99:99')||a.inicio.localeCompare(b.inicio)||a.id.localeCompare(b.id);
 const ordTxt=t=>[t.orden?ORDS[t.orden][1]+' del día':'',t.hora?'inicio '+t.hora:''].filter(Boolean).join(' · ');

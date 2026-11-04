@@ -65,7 +65,7 @@ Los scripts se cargan en ese orden y comparten el ámbito global.
 - Planificación por contrato, centro de costo e imputación. Los contratos se listan agrupados por cliente y ordenados por número, uno por número.
 - La ventana de planificación pide primero el cliente y después el contrato. La ubicación se elige de la lista o se escribe ("Otra ubicación"), y las tareas previstas salen de un desplegable con "Otra tarea", que el jefe de cuadrilla detalla al cerrar el parte.
 - En la misma ventana se cargan varios trabajos (1º, 2º…) en distintas ubicaciones con la misma cuadrilla, personas y equipos. Cada uno queda como un trabajo y un parte aparte.
-- Una cuadrilla puede tener varios trabajos en el mismo día: se ordenan (1º, 2º…) y opcionalmente llevan hora de inicio. La hora es una guía para el operador; no limita la carga del parte.
+- Una cuadrilla puede tener varios trabajos en el mismo día: se ordenan (1º, 2º…) y opcionalmente llevan hora de inicio. La hora es una guía para el operador; no limita la carga del parte. Orden y hora son libres, pero si dos trabajos que comparten día tienen los dos datos, el de orden mayor tiene que empezar más tarde.
 - Personas y equipos de cada trabajo con desplegables de búsqueda: se escribe y se elige, con la habilitación de cada uno a la vista.
 - Vistas Gantt, por recurso y mes, con ocupación y filtro por cliente y contrato. En las tres se mueve un trabajo de día arrastrándolo; en el Gantt también se estira o acorta desde el borde.
 - Parte diario en 4 pasos (inicio, personal y equipos, tareas y tiempos, cierre), con controles automáticos, una sola observación, firma del jefe de cuadrilla, fotos y pedidos de más días.
