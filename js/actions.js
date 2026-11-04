@@ -8,6 +8,7 @@ function setBind(path,val){
   if(root==='d'&&keys[0]==='hora'&&o.hora!==val){const txt=`Hora de inicio: ${o.hora||'sin hora'} → ${val||'sin hora'}`;o.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Hora de inicio modificada',o.id,txt,'','trabajo')}
   if(root==='e'&&keys[0]==='clima'){if(!o.clima)o.clima={t:'',v:'',r:'',dir:'O',cond:'Despejado',src:'manual'};o.clima.src='manual'}
   if(root==='e'&&keys[0]==='permiso'&&!o.permiso)o.permiso={num:'',firmo:'',hora:''};
+  if(root==='m'&&UI.modal.kind==='trab'&&keys[keys.length-1]==='orden'){const f=UI.modal.f,me=keys.length>1?f.more[keys[1]]:f,ot=[f,...f.more].find(x=>x!==me&&String(x.orden)===String(val));if(ot)ot.orden=String(me.orden||0)}
   for(let k=0;k<keys.length-1;k++)o=o[keys[k]];
   o[keys[keys.length-1]]=val;
   if(root==='v')UI.verr='';
@@ -89,7 +90,7 @@ const A={
   'm-tadd':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];if(!o.prev.includes(d.n))o.prev.push(d.n);if(UI.modal.err.jobs)delete UI.modal.err.jobs[Number(d.i)+1];render()},
   'm-tdel':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];o.prev=o.prev.filter(x=>x!==d.t);render()},
   'm-ulist':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];o.uo=false;o.pozo='';render()},
-  'm-jadd':()=>{const f=UI.modal.f;f.more.push({pozo:'',uo:!(CT(f.ct).ubic||[]).length,prev:[],hora:''});render();setTimeout(()=>{const b=$('.jlist');if(b)b.scrollTop=b.scrollHeight},30)},
+  'm-jadd':()=>{const f=UI.modal.f;if(!Number(f.orden))f.orden='1';const used=[f,...f.more].map(x=>Number(x.orden));f.more.push({pozo:'',uo:!(CT(f.ct).ubic||[]).length,prev:[],hora:'',orden:String(ORDS.map(x=>x[0]).find(k=>k&&!used.includes(k)))});render();setTimeout(()=>{const b=$('.jlist');if(b)b.scrollTop=b.scrollHeight},30)},
   'm-jdel':d=>{const f=UI.modal.f;f.more.splice(Number(d.i),1);UI.modal.err.jobs={};render()},
   'm-padd':d=>{const f=UI.modal.f;if(!f.pers.includes(d.n))f.pers.push(d.n);UI.modal.err.pers='';render()},
   'm-pdel':d=>{const f=UI.modal.f;f.pers=f.pers.filter(x=>x!==d.n);render()},
@@ -224,9 +225,9 @@ function submitTrab(){
     if(t.prev.join('|')!==vals.prev.join('|'))ch.push('tareas');if(t.pers.join('|')!==vals.pers.join('|'))ch.push('personas');if(t.eqs.join('|')!==vals.eqs.join('|'))ch.push('equipos');
     Object.assign(t,vals);
     t.hist.push({t:nowT(),who:meN(),a:'Editado: '+(ch.join(', ')||'sin cambios'),c:f.mot.trim()});logA('Trabajo editado',t.id,'Cambió: '+(ch.join(', ')||'sin cambios'),f.mot.trim(),'trabajo');UI.modal=null;UI.drawer=t.id;toast(`${t.id} actualizado`);render();return}
-  const n0=Math.max(0,...S.trabajos.map(t=>Number(t.id.slice(3))||0))+1,o0=Number(f.orden)||(jobs.length>1?1:0);
-  const ts=jobs.map((o,i)=>{const id='PL-'+String(n0+i).padStart(3,'0');
-    const t=Object.assign({id,cierre:null,ext:null,hist:[{t:nowT(),who:meN(),a:jobs.length>1?`Planificado junto con ${jobs.map((_,k)=>'PL-'+String(n0+k).padStart(3,'0')).filter(x=>x!==id).join(', ')}`:'Planificado',c:''}]},vals,{pozo:o.pozo,prev:o.prev.slice(),hora:mins(o.hora)!=null?o.hora:'',orden:o0?Math.min(5,o0+i):0});
+  const n0=Math.max(0,...S.trabajos.map(t=>Number(t.id.slice(3))||0))+1;
+  const ts=[...jobs].sort((a,b)=>Number(a.orden)-Number(b.orden)).map((o,i)=>{const id='PL-'+String(n0+i).padStart(3,'0');
+    const t=Object.assign({id,cierre:null,ext:null,hist:[{t:nowT(),who:meN(),a:jobs.length>1?`Planificado junto con ${jobs.map((_,k)=>'PL-'+String(n0+k).padStart(3,'0')).filter(x=>x!==id).join(', ')}`:'Planificado',c:''}]},vals,{pozo:o.pozo,prev:o.prev.slice(),hora:mins(o.hora)!=null?o.hora:'',orden:Number(o.orden)||0});
     S.trabajos.push(t);logA('Trabajo planificado',id,`${recOf(f.rec).n} · ${o.pozo} · ${fDay(f.inicio)} → ${fDay(tEnd(t))} · ${f.imp}${jobs.length>1?' · '+ORDS[t.orden][1]+' del día':''}`,'','trabajo');return t});
   UI.modal=null;const t=ts[0],cl=clashes(t).filter(x=>!ts.includes(x));
   toast(`${ts.map(x=>x.id).join(', ')} ${ts.length>1?'planificados':'planificado'} · ${recOf(f.rec).n}, ${fDay(f.inicio)} → ${fDay(tEnd(t))}${cl.length?' · comparte días con '+cl.map(x=>x.id).join(', '):''}`);render();

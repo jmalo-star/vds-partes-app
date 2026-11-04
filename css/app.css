@@ -469,8 +469,7 @@ select.w120{width:120px;flex:none}
 .jr{display:flex;align-items:center;gap:8px;min-width:0}
 .jr>select.inp,.jr>.uo{flex:1;min-width:0}
 .jr .uo{display:flex;gap:6px}.jr .uo .inp{flex:1;min-width:0}
-.jr>select#m-orden{flex:none;width:112px}
-.jn{flex:none;min-width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font-size:13px}
+.jr>select.jord{flex:none;width:112px}
 .jt{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .jt .chip .i{width:14px;height:14px;opacity:.7}
 .jt .cbx{flex:1 1 200px;min-width:180px}
