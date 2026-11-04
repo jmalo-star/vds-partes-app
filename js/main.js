@@ -117,6 +117,17 @@ scr.addEventListener('submit',ev=>{ev.preventDefault();
     const fn=UI.whyFn;UI.modal=UI.whyBack||null;UI.whyFn=null;UI.whyBack=null;UI.whyTxt='';if(fn)fn(m);render()}
 });
 
+/* Aviso flotante en lugar del title. En la tablet no hay cursor: el toque abre el detalle */
+document.addEventListener('pointerover',ev=>{
+  if(ev.pointerType==='touch'||drag||cdrag)return;
+  const el=ev.target.closest&&ev.target.closest('[data-tip],[data-ttl],[title]');
+  if(el===tipEl)return;tipHide();if(!el)return;
+  if(el.title){el.dataset.ttl=el.title;el.removeAttribute('title')}
+  tipEl=el;const x=ev.clientX;tipTo=setTimeout(()=>{if(el.isConnected&&tipEl===el)tipShow(el,x)},220);
+});
+document.addEventListener('pointerout',ev=>{if(tipEl&&!(ev.relatedTarget&&tipEl.contains(ev.relatedTarget)))tipHide()});
+['pointerdown','keydown','scroll'].forEach(n=>document.addEventListener(n,tipHide,true));
+
 /* ---------- Gantt: arrastrar para mover, bordes para estirar o acortar ---------- */
 scr.addEventListener('pointerdown',ev=>{
   const bar=ev.target.closest('.gbar');if(!bar)return;

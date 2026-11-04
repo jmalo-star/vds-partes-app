@@ -1,7 +1,7 @@
 /* ---------- render, estructura de la app y componentes ---------- */
 let toastT=null;
 function render(){
-  TODAY=iso(new Date());
+  TODAY=iso(new Date());tipHide();
   const scr=$('#screen');
   const sig=[S.route,S.step,S.sel,S.vsel,S.csel,S.vf,S.cf,S.pv,S.dtab,S.itab,S.ctab,S.cct,S.ccu,UI.modal?UI.modal.kind:'',UI.drawer].join('|');
   const keep={};
@@ -14,6 +14,30 @@ function render(){
   scr.querySelectorAll('[data-keep]').forEach(el=>{if(keep[el.dataset.keep]!=null)el.scrollTop=keep[el.dataset.keep]});
   UI.sig=sig;
   initSigs();save();
+}
+/* ---------- aviso flotante: reemplaza al cartel del navegador (title) con el estilo de la app ---------- */
+let tipEl=null,tipTo=null;
+function tipHide(){clearTimeout(tipTo);tipEl=null;const b=$('#tip');if(b)b.classList.remove('on')}
+const tipRow=(l,v)=>`<dt>${l}</dt><dd>${v}</dd>`;
+function tipHtml(el){
+  if(el.dataset.ttl)return `<span>${esc(el.dataset.ttl)}</span>`;
+  const [k,id]=(el.dataset.tip||'').split(':'),t=trab(id);if(!t)return '';
+  if(k==='x'){const x=t.ext;if(!x)return '';
+    return `<div class="tt1 tw">${ic('flag')}<b>Pedido de más días</b><span class="sp"></span><span class="tag">Pendiente</span></div><h5>${t.id} · ${esc(locOf(t))}</h5>
+    <dl>${tipRow('Pide',`${x.dias} día${x.dias>1?'s':''} más, hasta el ${fDay(addDays(tEnd(t),x.dias))}`)}${tipRow('Motivo',esc(x.motivo)||'Sin motivo')}${tipRow('Pidió',`${esc(x.who)} · ${esc(when(x.t))}`)}${tipRow('Cuadrilla',esc(recOf(t.rec).n))}</dl><div class="th">Tocá para aprobarlo o rechazarlo</div>`}
+  const cl=clashes(t);
+  return `<div class="tt1"><span class="mono">${t.id}</span>${t.cierre?`<span class="hab h-ok">${ic('check')}Cerrado</span>`:pill(tState(t))}${prioB(t.prio)}</div><h5>${esc(locOf(t))}</h5>
+  <dl>${tipRow('Cliente',`${esc(OPS[CT(t.ct).op])} · <span class="mono">${esc(t.ct)}</span>`)}${tipRow('Fechas',`${fDay(t.inicio)} → ${fDay(tEnd(t))} · ${t.dias} día${t.dias>1?'s':''}`)}${ordTxt(t)?tipRow('Orden',esc(ordTxt(t))):''}${tipRow('Cuadrilla',`${esc(recOf(t.rec).n)} · ${esc(jefeOf(t.rec))}`)}${tipRow('Tareas',t.prev.map(esc).join(' · '))}${tipRow('Recursos',`${t.pers.length} persona${t.pers.length>1?'s':''}${t.eqs.length?' · '+esc(t.eqs.join(', ')):''}`)}${t.ptw?tipRow('Permiso','Requiere permiso de la operadora'):''}${t.ext?tipRow('Pedido',`${t.ext.dias} día${t.ext.dias>1?'s':''} más, pendiente`):''}${cl.length?tipRow('Atención',`<span class="warn">Comparte días con ${cl.map(x=>x.id).join(', ')}</span>`):''}</dl>
+  <div class="th">Tocá para ver el detalle${canPlan()&&!t.cierre?'. Arrastralo para moverlo':''}</div>`;
+}
+function tipShow(el,x){
+  let b=$('#tip');if(!b){b=document.createElement('div');b.id='tip';b.setAttribute('role','tooltip');document.body.appendChild(b)}
+  b.innerHTML=tipHtml(el);if(!b.innerHTML)return;
+  b.style.transform=`scale(${SCALE})`;
+  const r=el.getBoundingClientRect(),w=b.offsetWidth*SCALE,h=b.offsetHeight*SCALE,m=8;
+  b.style.left=Math.max(m,Math.min(innerWidth-w-m,x-w/2))+'px';
+  b.style.top=(r.bottom+m+h<=innerHeight-m?r.bottom+m:Math.max(m,r.top-h-m))+'px';
+  b.classList.add('on');
 }
 function toast(m){UI.toast=m;clearTimeout(toastT);toastT=setTimeout(()=>{UI.toast=null;const t=$('#screen .toast');if(t)t.remove()},3600)}
 function go(route){S.route=route;UI.drawer=null;render()}
