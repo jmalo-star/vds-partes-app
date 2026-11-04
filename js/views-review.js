@@ -24,8 +24,8 @@ function vInbox(role){
 function detail(p,role){
   const cli=role==='c',e=p.ejec,c=checks(p).filter(x=>!cli||x[3]!=='int'),s=sums(p),ne=c.filter(x=>x[0]==='err').length,t=trab(p.pl);
   const ops=e.reg.filter(x=>x.c==='op');
-  const tasks=[...new Set([...p.prev,...ops.map(x=>x.d).filter(Boolean)])].map(d=>{const q=ops.filter(x=>x.d===d).reduce((a,x)=>a+(Number(x.q)||0),0),u=(ops.find(x=>x.d===d)||{}).u||unitOf(p.ct,d);const pv=p.prev.includes(d);
-    return `<tr><td>${esc(d)}</td><td>${pv?'Prevista':inCat(p.ct,d)?'<span class="warn">Adicional</span>':'<span class="warn">Fuera de catálogo</span>'}</td><td class="num ${!q?'warn':''}">${q?num(q)+' '+esc(u):'No se hizo'}</td></tr>`}).join('');
+  const tasks=[...new Set([...p.prev.filter(d=>d!==OTRA||!ops.some(x=>x.d&&!inCat(p.ct,x.d))),...ops.map(x=>x.d).filter(Boolean)])].map(d=>{const q=ops.filter(x=>x.d===d).reduce((a,x)=>a+(Number(x.q)||0),0),u=(ops.find(x=>x.d===d)||{}).u||unitOf(p.ct,d);const pv=p.prev.includes(d);
+    return `<tr><td>${esc(d)}</td><td>${pv?'Prevista':`<span class="warn">${tOrigen(p,d)}</span>`}</td><td class="num ${!q?'warn':''}">${q?num(q)+' '+esc(u):d===OTRA?(e.obs.trim()?'Ver observaciones':'Sin detallar'):'No se hizo'}</td></tr>`}).join('');
   const pers=e.personal.map(x=>{const d=x.pres?pDur(e,x):0,h=hab(x.n,p.op,p.fecha);return `<tr class="${x.pres?'':'off'}"><td><b>${esc(x.n)}</b> <span class="sm">${esc(x.rol)}</span></td>${cli?'':`<td>${x.pres?habChip(h):''}</td>`}<td class="num">${x.pres?esc(pIni(e,x)||'—'):'—'}</td><td class="num">${x.pres?esc(pFin(e,x)||'—'):''}</td><td class="num ${d>720?'warn':''}">${x.pres?(d?fmtH(d):'—'):'Ausente'}${x.pres&&pManual(x)?' <span class="sm">· ajustado</span>':''}</td></tr>`}).join('');
   const eq=e.equipos.map(q=>{const pk=lastKm(q.c,p);return `<tr><td><span class="mono">${esc(q.c)}</span> ${esc(EQ[q.c])}${q.obs?` <span class="sm">· ${esc(q.obs)}</span>`:''}</td>${cli?'':`<td>${habChip(hab(q.c,p.op,p.fecha))}</td>`}<td class="num">${q.km===''?'—':num(q.km)}</td><td class="num">${q.km!==''&&pk!==null?num(q.km-pk)+' km':'—'}</td></tr>`}).join('');
   const cl=e.clima,w=e.permiso;

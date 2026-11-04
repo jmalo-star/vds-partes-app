@@ -39,7 +39,7 @@ function buildPdf(p,fotos){
   sec(`Equipos · ${num(s.km)} km`);
   tbl(['Equipo','Km actual','Recorrido','Observación'],e.equipos.map(q=>{const pk=lastKm(q.c,p);return [`${q.c} ${EQ[q.c]}`,q.km===''?'-':num(q.km),q.km!==''&&pk!==null?num(q.km-pk)+' km':'-',q.obs||'-']}));
   sec('Producción del día');
-  const pr=prod(p);tbl(['Tarea','Cantidad','Unidad','Origen'],pr.length?pr.map(x=>[x.d,x.q?num(x.q):'-',x.u,p.prev.includes(x.d)?'Prevista':inCat(p.ct,x.d)?'Adicional':'Fuera de catálogo']):[['Sin tareas','','','']]);
+  const pr=prod(p);tbl(['Tarea','Cantidad','Unidad','Origen'],pr.length?pr.map(x=>[x.d,x.q?num(x.q):'-',x.u,tOrigen(p,x.d)]):[['Sin tareas','','','']]);
   sec(`Tareas y tiempos · ${fmtH(s.jor)}`);
   tbl(['Desde','Hasta','Categoría','Tarea / motivo / detalle','Cantidad'],e.reg.slice().sort((a,b)=>mins(a.de)-mins(b.de)).map(x=>[x.de,x.a,TCAT[x.c],(x.d||'-')+(x.det?' · '+x.det:''),regQ(x)]));
   if(p.fin==='fin'&&t){const tt=trabTotals(t,p);sec(`Cierre del trabajo ${p.pl} · ${tt.dias} día(s) · ${fmtH(tt.hh)} hombre`);tbl(['Tarea','Total del trabajo'],tt.prod.map(x=>[x.d,num(x.q)+' '+x.u]));}
@@ -97,7 +97,7 @@ async function exportDash(){
   ps.forEach(p=>{const s=sums(p),e=p.ejec;hh+=s.hh;km+=s.km;Object.entries(s.byc).forEach(([k,v])=>byc[k]=(byc[k]||0)+v);
     byImp[p.imp]=byImp[p.imp]||{ct:p.ct,n:0,hh:0};byImp[p.imp].n++;byImp[p.imp].hh+=s.hh;
     rP.push([p.id,xd(p.fecha),EST[p.estado],p.ct,p.imp,impN(p.ct,p.imp),`${p.cc} · ${p.ccn||CT(p.ct).ccn}`,locOf(p),p.pl,p.dia+1,recOf(p.rec).n,s.pers,h2(s.hh),h2(s.byc.op||0),h2(s.byc.tr||0),h2(s.byc.es||0),h2(s.byc.vi||0),h2(s.byc.sb||0),h2(s.byc.rf||0),s.km,p.dec&&p.dec.d==='ok'?p.dec.who:'',p.dec&&p.dec.d==='ok'?whenX(p.dec.t):'',p.cert?p.cert.who:'',p.cert?whenX(p.cert.t):'']);
-    prod(p).forEach(x=>{rPr.push([p.id,xd(p.fecha),p.ct,p.imp,locOf(p),x.d,x.q,x.u,p.prev.includes(x.d)?'Prevista':inCat(p.ct,x.d)?'Adicional':'Fuera de catálogo']);const k=x.d+'|'+x.u;pr[k]=pr[k]||{d:x.d,u:x.u,q:0};pr[k].q+=x.q});
+    prod(p).forEach(x=>{rPr.push([p.id,xd(p.fecha),p.ct,p.imp,locOf(p),x.d,x.q,x.u,tOrigen(p,x.d)]);const k=x.d+'|'+x.u;pr[k]=pr[k]||{d:x.d,u:x.u,q:0};pr[k].q+=x.q});
     e.reg.slice().sort((a,b)=>(mins(a.de)??0)-(mins(b.de)??0)).forEach(x=>rT.push([p.id,xd(p.fecha),p.imp,TCAT[x.c],x.de,x.a,h2(dur(x.de,x.a)),x.d||'',(x.c==='op'||x.c==='vi')&&Number(x.q)>0?Number(x.q):'',x.c==='vi'?'km/h':x.c==='op'?x.u:'',x.det||'']));
     e.personal.forEach(x=>rPe.push([p.id,xd(p.fecha),p.imp,x.n,x.rol,x.pres?'Sí':'No',x.pres?pIni(e,x):'',x.pres?pFin(e,x):'',x.pres?h2(pDur(e,x)):'',x.pres?(pManual(x)?'A mano':'Automático'):'']));
     e.equipos.forEach(q=>{const pk=lastKm(q.c,p);rE.push([p.id,xd(p.fecha),p.imp,q.c,EQ[q.c],q.km===''?'':Number(q.km),q.km!==''&&pk!==null?Number(q.km)-pk:'',q.obs||''])})});

@@ -15,6 +15,7 @@ function migrate(x){
   // v0.7.1: el personal ya no carga ingreso a base ni horarios: se calculan desde la llegada y los tramos
   x.partes.forEach(p=>{if(p.ejec)p.ejec.personal.forEach(q=>{if('base' in q){delete q.base;delete q.zona;delete q.out;q.ini=q.ini||'';q.fin=q.fin||''}})});x.trabajos.forEach(t=>{if(t.orden==null)t.orden=0;if(t.hora==null)t.hora=''});
   // v0.8: una sola observación por parte (la del cierre se une a la del día), usuarios creados por el administrador y novedades
+  x.partes.forEach(p=>{if(p.hist)p.hist=p.hist.filter(h=>!/^Novedad (cargada|quitada)/.test(h.a))}); // internas: no van en el historial, que sale en el PDF
   x.partes.forEach(p=>{if(p.cierreObs){if(p.ejec&&!String(p.ejec.obs||'').includes(p.cierreObs))p.ejec.obs=[p.ejec.obs,p.cierreObs].filter(Boolean).join('\n');delete p.cierreObs}});
   x.users=x.users||{};if(!x.cat.novedades)x.cat.novedades=D_NOV.map(([c,t])=>({c,t}));
 }
@@ -42,6 +43,8 @@ const trab=id=>S.trabajos.find(t=>t.id===id);
 const cur=()=>byId(S.sel);
 const unitOf=(ct,d)=>((CT(ct).tareas.find(x=>x[0]===d))||[0,''])[1];
 const inCat=(ct,d)=>CT(ct).tareas.some(x=>x[0]===d);
+/* Origen de una tarea informada. Si se planificó "Otra tarea", la tarea fuera de catálogo es su detalle */
+const tOrigen=(p,d)=>p.prev.includes(d)?'Prevista':inCat(p.ct,d)?'Adicional':p.prev.includes(OTRA)?'Otra tarea prevista':'Fuera de catálogo';
 const parteOf=(pl,f)=>S.partes.find(p=>p.pl===pl&&p.fecha===f);
 const tDays=t=>Array.from({length:t.dias},(_,i)=>addDays(t.inicio,i));
 const tEnd=t=>addDays(t.inicio,t.dias-1);
@@ -150,6 +153,8 @@ function checks(p){
   if([...pres.map(x=>x.n),...e.equipos.map(q=>q.c)].some(s=>hab(s,p.op,p.fecha).st==='nd'))out.push(['warn','No hay datos de habilitación cargados para validar el ingreso de personal y equipos','Personal','int']);
   const srt=e.reg.slice().sort((a,b)=>mins(a.de)-mins(b.de));
   for(let i=1;i<srt.length;i++){if(mins(srt[i].de)<mins(srt[i-1].a))out.push(['warn',`Tramos superpuestos: ${srt[i-1].de}–${srt[i-1].a} y ${srt[i].de}–${srt[i].a}`,'Tareas'])}
+  e.reg.filter(x=>mins(x.de)!=null&&mins(x.a)!=null&&mins(x.a)<=mins(x.de)).forEach(x=>out.push(['warn',`Tramo ${x.de}–${x.a}: la hora de fin no es posterior a la de inicio`,'Tareas']));
+  pres.filter(x=>{const a=mins(pIni(e,x)),b=mins(pFin(e,x));return a!=null&&b!=null&&b<=a}).forEach(x=>out.push(['warn',`${x.n}: la hora de fin (${pFin(e,x)}) no es posterior a la de inicio (${pIni(e,x)})`,'Cierre']));
   p.prev.filter(d=>d!==OTRA&&!ops.some(x=>x.d===d)).forEach(d=>out.push(['warn',`Tarea prevista sin informar hoy: ${d}`,'Tareas']));
   if(otra&&!ops.some(x=>x.d&&!inCat(p.ct,x.d))&&!e.obs.trim())out.push(['warn','Estaba prevista "otra tarea": detallá cuál se hizo en Tareas y tiempos o en las observaciones','Cierre']);
   if(e.clima&&Number(e.clima.r)>=60&&!e.reg.some(t=>t.c==='vi'))out.push(['warn',`Ráfagas de ${e.clima.r} km/h sin parada por viento registrada`,'Tareas']);
