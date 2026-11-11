@@ -53,6 +53,17 @@ function cbOpen(wrap){
   if(dd){const o=[...pop.querySelectorAll('.cbx-o')];CB.act=o.findIndex(b=>b.classList.contains('sel'));cbHi();inp.focus({preventScroll:true})}
   else cbFilter();
 }
+/* Ubicaciones con coordenadas (miles): la lista se arma con lo que se escribe, no se carga entera */
+function ubxFill(){
+  const w=CB.wrap,op=w.dataset.op,i=w.dataset.i,q=CB.inp.value.trim(),kb=CB.inp.inputMode==='none';
+  const opt=u=>`<button type="button" class="cbx-o" role="option" data-a="m-upick" data-i="${i}" data-u="${esc(u.id)}"><span class="nm"><b>${esc(u.n)}</b><small>${esc(ubicTxt(u))}</small></span></button>`;
+  let h=kb?`<button type="button" class="cbx-kb">${ic('search')}Escribir para buscar</button>`:'';
+  if(!UB.ready)h+='<div class="cbx-none">Cargando ubicaciones…</div>';
+  else if(!q){const rec=[...new Set(S.trabajos.filter(t=>t.uid&&CT(t.ct)&&CT(t.ct).op===op).sort((a,b)=>b.inicio.localeCompare(a.inicio)).map(t=>t.uid))].map(id=>UB.byId[id]).filter(Boolean).slice(0,8);
+    h+=`<div class="cbx-none">Escribí el nombre del pozo, la batería o el yacimiento. Hay ${ubicN(op).toLocaleString('es-AR')} ubicaciones de ${esc(OPS[op]||op)}.</div>`+(rec.length?`<div class="cbx-g">Usadas hace poco</div>${rec.map(opt).join('')}`:'')}
+  else{const r=ubicFind(op,q,40);h+=r.list.map(opt).join('')||`<div class="cbx-none">Nada coincide con "${esc(q)}"</div>`;if(r.total>r.list.length)h+=`<div class="cbx-none">Se muestran ${r.list.length} de ${r.total.toLocaleString('es-AR')}: escribí más para acotar.</div>`}
+  h+=`<button type="button" class="cbx-o otra" role="option" data-a="m-uotra" data-i="${i}">${ic('edit')}<span class="nm"><b>Otra ubicación: escribirla</b><small>Queda sin coordenadas: no se puede abrir en el mapa</small></span></button>`;
+  CB.pop.innerHTML=h;CB.act=q&&CB.pop.querySelector('.cbx-o:not(.otra)')?0:-1;cbHi()}
 function cbPlace(){
   if(!CB)return;const s=SCALE,r=CB.inp.getBoundingClientRect(),sr=scr.getBoundingClientRect(),vv=window.visualViewport;
   const W=sr.width/s,H=sr.height/s,top=(r.top-sr.top)/s,bot=(r.bottom-sr.top)/s,w=Math.max(r.width/s,320);
@@ -64,7 +75,7 @@ function cbPlace(){
   else{CB.pop.style.bottom=(H-top+4)+'px';CB.pop.style.maxHeight=Math.min(340,above)+'px'}
 }
 function cbFilter(){
-  if(!CB)return;const q=norm(CB.inp.value);let n=0;
+  if(!CB)return;if(CB.wrap.dataset.ubx){ubxFill();return}const q=norm(CB.inp.value);let n=0;
   CB.pop.querySelectorAll('.cbx-o').forEach(b=>{const ok=!q||b.dataset.q.includes(q);b.hidden=!ok;if(ok)n++});
   let head=null,cnt=0;[...CB.pop.children].forEach(el=>{if(el.classList.contains('cbx-g')){if(head)head.hidden=!cnt;head=el;cnt=0}else if(el.classList.contains('cbx-o')&&!el.hidden)cnt++});if(head)head.hidden=!cnt;
   let none=CB.pop.querySelector('.cbx-nores');

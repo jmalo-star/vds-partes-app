@@ -5,11 +5,11 @@ const NET={online:navigator.onLine!==false};
 
 function baseState(){return {user:null,route:'login',back:null,sel:null,step:0,vf:'env',vsel:null,vop:'all',cf:'apr',csel:null,pf:'all',lop:'all',lct:'all',lrec:'all',lq:'',hf:'p',hq:'',hbad:false,pv:'gantt',fop:'all',fct:'all',
   gs:addDays(mondayOf(TODAY),-7),ws:mondayOf(TODAY),ms:TODAY.slice(0,7),dop:Object.keys(OPS)[0],dct:'all',dimp:'all',dfrom:'',dto:'',dtab:'res',itab:'res',ctab:'datos',cct:null,ccu:null,gt:'all',gu:'all',gq:'',rmin:false,simOff:false,oday:0,cfrom:'',cto:'',cctf:'all',ntab:'gen',nemp:null,nq:'',nfrom:'',nto:'',nop:'all',nct:'all',nrec:'all',ncod:'all',nest:'all'}}
-function fresh(){const cat=demoCat();applyCat(cat);CTS=JSON.parse(JSON.stringify(CONTRATOS0));const s=seed();seedNov(s.P,cat.novedades);
+function fresh(){const cat=demoCat();applyCat(cat);ubicLoad(cat);CTS=JSON.parse(JSON.stringify(CONTRATOS0));const s=seed();seedNov(s.P,cat.novedades);
   Object.entries(CTS).forEach(([k,c])=>{c.ubic=[...new Set(s.T.filter(t=>t.ct===k).map(locOf))].sort();c.eqs=[...new Set(c.recs.flatMap(r=>VEH[r]||[]))]});
   return Object.assign(baseState(),{v:7,cat,trabajos:s.T,partes:s.P,contratos:CTS,hab:seedHab(),adm:{planner:true,planner2:false},users:{},novv:D_NOVV(),novvEx:true,log:seedLog(s.T,s.P)})}
 /* Almacenamiento local del dispositivo. Cuando haya backend, load/save pasan a sincronizar con la API. */
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.v===7&&x.cat&&Array.isArray(x.partes)&&Array.isArray(x.trabajos)&&Array.isArray(x.log)){applyCat(x.cat);CTS=x.contratos;migrate(x);return Object.assign(baseState(),x)}}catch(e){}return null}
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.v===7&&x.cat&&Array.isArray(x.partes)&&Array.isArray(x.trabajos)&&Array.isArray(x.log)){applyCat(x.cat);CTS=x.contratos;migrate(x);ubicLoad(x.cat);return Object.assign(baseState(),x)}}catch(e){}return null}
 /* Cambios de formato entre versiones guardadas en el dispositivo */
 function migrate(x){
   // v0.7.1: el personal ya no carga ingreso a base ni horarios: se calculan desde la llegada y los tramos
@@ -22,6 +22,15 @@ function migrate(x){
   const nv=x.cat.novedades;if(nv.length===9&&nv.some(n=>n.c==='PERNOCTE')){const eq={VIANDA:'VIANDA ADIC.',PERNOCTE:'ADIC.PERNOCT',VACACIONES:'VAC - AUS',ENFERMEDAD:'ENF - AUS',FERIADO:'FERIADO - AUS'};x.cat.novedades=D_NOV.map(([c,t])=>({c,t}));x.partes.forEach(p=>{Object.keys(p.nov||{}).forEach(n=>{p.nov[n]=p.nov[n].map(c=>eq[c]||c)})})}
   else x.cat.novedades=novList(nv.map(n=>[n.c,n.t]));
   if(!x.novv){x.novv=D_NOVV();x.novvEx=true}
+  // v0.10: contrato con ID de VDS (la clave), nº de contrato del cliente, vigencia, responsable y servicios;
+  // tareas con códigos de facturación y cantidad por defecto: [nombre, unidad, categoría de equipo, origen, códigos, cantidad]
+  // con los datos de ejemplo guardados se completan los campos nuevos y las coordenadas de ejemplo, sin tocar lo cargado
+  if(x.cat.src==='demo')Object.entries(CONTRATOS0).forEach(([k,c0])=>{const c=x.contratos[k];if(!c||'num' in c)return;Object.assign(c,{num:c0.num,vig:c0.vig,resp:c0.resp,servs:c0.servs.slice()});
+    c.tareas.forEach(t=>{const t0=c0.tareas.find(y=>y[0]===t[0]);while(t.length<4)t.push('');if(t0&&!Array.isArray(t[4])){t[4]=t0[4].slice();t[5]=t0[5]}})});
+  if(x.cat.src==='demo')[...x.trabajos,...x.partes].forEach(o=>{if(o.uid!==undefined)return;const u=D_UBIC.find(d=>d.n===o.pozo&&d.y===o.yac);o.uid=u?u.id:'';o.lat=u?u.lat:'';o.lon=u?u.lon:''});
+  Object.entries(x.contratos).forEach(([k,c])=>{if(!('num' in c))c.num=/^CT-/.test(k)?'':k;c.vig=c.vig||'';c.resp=c.resp||'';if(!Array.isArray(c.servs))c.servs=[c.n];
+    c.tareas.forEach(t=>{while(t.length<4)t.push('');if(!Array.isArray(t[4]))t[4]=[];if(t[5]==null)t[5]=''})});
+  if(x.cat.ubicN==null)x.cat.ubicN=0;
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));UI.saveErr=false}catch(e){if(!UI.saveErr){UI.saveErr=true;toast('No queda espacio en el dispositivo para guardar los cambios. Sincronizá o liberá espacio antes de seguir.');setTimeout(render,0)}}}
 
@@ -38,14 +47,44 @@ function fotoSrc(f){if(f.src)return f.src;if(!f.id)return '';if(MEDIA.url[f.id])
 async function fotoData(f){if(f.src)return f.src;if(!f.id)return null;const b=await mediaGet(f.id).catch(()=>null);if(!b)return null;return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res(null);r.readAsDataURL(b)})}
 function regenExamples(){const keep={cat:S.cat,contratos:S.contratos,hab:S.hab,adm:S.adm,users:S.users,novv:S.novv,novvEx:S.novvEx,log:S.log,user:S.user,route:S.route};applyCat(keep.cat);CTS=keep.contratos;const s=exampleSeed();S=Object.assign(baseState(),{v:7},keep,{trabajos:s.T,partes:s.P})}
 
+/* ---------- ubicaciones con coordenadas (pozos e instalaciones) ----------
+   Son miles: van en IndexedDB y no en el estado. Cada una: {id,n:nombre,t:tipo,op:cliente,a:área,y:yacimiento,pv:provincia,e:estado,lat,lon}.
+   Con los datos de ejemplo se usan las de ejemplo (D_UBIC); con datos importados, las del archivo. */
+const UB={list:[],byId:{},ready:false,db:null};
+function ubicDB(){if(!UB.db)UB.db=new Promise((res,rej)=>{const r=indexedDB.open('vds-ubic',1);r.onupgradeneeded=()=>r.result.createObjectStore('ubic');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return UB.db}
+const ubicTx=(mode,fn)=>ubicDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction('ubic',mode),st=tx.objectStore('ubic');let out;const q=fn(st);if(q)q.onsuccess=()=>{out=q.result};tx.oncomplete=()=>res(out);tx.onerror=()=>rej(tx.error)}));
+function ubicSet(list){UB.list=list||[];UB.byId={};UB.list.forEach(u=>{u.q=norm([u.n,u.t,u.a,u.y].join(' '));UB.byId[u.id]=u});UB.ready=true}
+const ubicSave=list=>ubicTx('readwrite',st=>st.put(list,'all'));
+/* Al arrancar: con datos importados se leen de IndexedDB; mientras tanto la búsqueda avisa que está cargando */
+function ubicLoad(cat){if(cat.src==='demo'||!cat.ubicN){ubicSet(cat.src==='demo'?D_UBIC.map(u=>Object.assign({},u)):[]);return Promise.resolve()}
+  UB.ready=false;return ubicTx('readonly',st=>st.get('all')).then(l=>{ubicSet(l||[]);if(S)render()}).catch(()=>{ubicSet([]);if(S)render()})}
+const ubicN=op=>UB.list.reduce((n,u)=>n+(u.op===op?1:0),0);
+/* Búsqueda: todas las palabras tienen que aparecer; primero los nombres que empiezan igual */
+function ubicFind(op,q,max){const w=norm(q).split(/\s+/).filter(Boolean),out=[];if(!w.length)return {total:0,list:[]};const w0=w[0];
+  for(const u of UB.list){if(op&&u.op!==op)continue;if(w.every(x=>u.q.includes(x)))out.push(u)}
+  const rk=u=>{const n=norm(u.n);return n===w0?0:n.startsWith(w0)?1:u.q.startsWith(w0)?2:3};
+  out.sort((a,b)=>rk(a)-rk(b)||(a.t==='Pozo')-(b.t==='Pozo')||natCmp(a.n,b.n));return {total:out.length,list:out.slice(0,max||40)}}
+const ubicTxt=u=>[u.y||u.a,u.t!=='Pozo'?u.t:(u.e?'Pozo '+u.e.toLowerCase():'Pozo')].filter(Boolean).join(' · ');
+/* Google Maps: el punto y cómo llegar desde donde está la tablet */
+const mapsUrl=(lat,lon)=>`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+const dirUrl=(lat,lon)=>`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+const hasGeo=x=>!!x&&x.lat!=null&&x.lon!=null&&x.lat!==''&&x.lon!=='';
+const mapBtns=(x,full)=>hasGeo(x)?`<span class="maps"><a class="mapb" href="${mapsUrl(x.lat,x.lon)}" target="_blank" rel="noopener">${ic('pin')}Ver en mapa</a>${full?`<a class="mapb" href="${dirUrl(x.lat,x.lon)}" target="_blank" rel="noopener">${ic('right')}Cómo llegar</a>`:''}</span>`:'';
+const geoTxt=x=>hasGeo(x)?`${Number(x.lat).toFixed(5)}, ${Number(x.lon).toFixed(5)}`:'';
+
 /* ---------- accesos ---------- */
 const CT=id=>S.contratos[id];
+/* Contrato: la clave es el ID de VDS (CT-PAE-001); el número del cliente es el que va en partes y certificaciones */
+const ctNum=k=>((CT(k)||{}).num||'');
+const ctLbl=k=>ctNum(k)?`${ctNum(k)} (${k})`:k;
 const impN=(ct,code)=>{const x=((CT(ct)||{}).imps||[]).find(i=>i[0]===code);return x?x[1]:''};
 const impL=(ct,code)=>[code||'—',impN(ct,code)].filter(Boolean).join(' · ');
 const byId=id=>S.partes.find(p=>p.id===id);
 const trab=id=>S.trabajos.find(t=>t.id===id);
 const cur=()=>byId(S.sel);
 const unitOf=(ct,d)=>((CT(ct).tareas.find(x=>x[0]===d))||[0,''])[1];
+const qDefOf=(ct,d)=>((CT(ct).tareas.find(x=>x[0]===d))||[])[5]??'';
+const codOf=(ct,d)=>((CT(ct).tareas.find(x=>x[0]===d))||[])[4]||[];
 const inCat=(ct,d)=>CT(ct).tareas.some(x=>x[0]===d);
 /* Origen de una tarea informada. Si se planificó "Otra tarea", la tarea fuera de catálogo es su detalle */
 const tOrigen=(p,d)=>p.prev.includes(d)?'Prevista':inCat(p.ct,d)?'Adicional':p.prev.includes(OTRA)?'Otra tarea prevista':'Fuera de catálogo';

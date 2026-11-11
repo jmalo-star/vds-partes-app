@@ -258,6 +258,18 @@ select.w120{width:120px;flex:none}
 .cbx-o.otra{margin-top:4px;border-top:1px solid var(--line);border-radius:0 0 8px 8px}
 .cbx-o.otra>.i{color:var(--muted)}
 .ddt{display:flex;gap:6px;align-items:center}.ddt .inp{flex:1;min-width:0}
+/* ubicaciones con coordenadas: búsqueda, la elegida y los botones de Google Maps */
+.jr>.ubx,.jr>.usel{flex:1;min-width:0}
+.usel{display:flex;align-items:center;gap:8px;min-height:42px;padding:4px 6px 4px 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel)}
+.usel .nm{flex:1;min-width:0}.usel b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.usel small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.usel .maps{margin:0}
+.maps{display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:10px;vertical-align:middle}
+.mapb{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 11px;border:1px solid var(--line-2);border-radius:999px;background:var(--panel);color:var(--ink);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}
+.mapb .i{width:14px;height:14px;color:var(--accent)}
+.mapb:hover{background:var(--surface)}
+.tcard .mapb{height:34px;font-size:13px}
+dd .maps{display:flex;margin:6px 0 0}
+.dkv .geo{display:block;color:var(--muted);font-size:11.5px}.dkv .maps{display:flex;margin:4px 0 0}
 
 /* ---------- ingreso ---------- */
 .lgn{position:relative;flex:1;display:grid;grid-template-columns:minmax(0,1fr) 430px;grid-template-rows:auto minmax(0,1fr);padding:22px 44px 30px;column-gap:56px;color:#fff;overflow:hidden;background:#0b1118}

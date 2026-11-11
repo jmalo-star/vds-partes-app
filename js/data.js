@@ -7,22 +7,32 @@ const D_OPS={AUP:'Austral Petróleo',GEN:'Golfo Energía',CDO:'Cañadón Oil'};
 const D_OPSUP={AUP:'Gustavo Rivas',GEN:'Carolina Díaz',CDO:'Fabián Torres'};
 const APROB='Laura Méndez';
 const CONTRATOS0={
-  'CT-AUP-017':{op:'AUP',n:'Servicios de cuadrilla en locaciones',cc:'4110',ccn:'Mantenimiento de locaciones · Zona Norte',yacs:['El Trébol','Escalante'],recs:['C-01','C-03'],
+  /* Estructura real de un contrato: la clave es el ID de VDS; num es el número de contrato del cliente.
+     Tareas: [nombre, unidad, categoría de equipo, origen, códigos de facturación, cantidad por defecto] */
+  'CT-AUP-017':{op:'AUP',num:'4600001017',n:'Servicios de cuadrilla en locaciones',servs:['Servicios de cuadrilla en locaciones'],vig:'2027-06-30',resp:'Natalia Vera',cc:'4110',ccn:'Mantenimiento de locaciones · Zona Norte',yacs:['El Trébol','Escalante'],recs:['C-01','C-03'],
     imps:[['AUP-4110-OPEX-01','Mantenimiento de locaciones El Trébol'],['AUP-4110-OPEX-02','Mantenimiento de locaciones Escalante'],['AUP-4110-CAPEX-07','Obras de superficie · proyecto batería ET-B3']],
-    tareas:[['Limpieza de locación','m²'],['Montaje de línea de conducción','m'],['Zanjeo manual','m'],['Desmalezado','m²'],['Armado de cerco perimetral','m'],['Movimiento de suelo','m³']]},
-  'CT-AUP-021':{op:'AUP',n:'Transporte y logística de materiales',cc:'4205',ccn:'Logística El Trébol',yacs:['El Trébol','Escalante'],recs:['CM-22'],
+    tareas:[['Limpieza de locación','m²','','',['AUP17-01'],400],['Montaje de línea de conducción','m','','',['AUP17-02'],50],['Zanjeo manual','m','','',['AUP17-03'],40],['Desmalezado','m²','','',['AUP17-04'],800],['Armado de cerco perimetral','m','','',['AUP17-05'],60],['Movimiento de suelo','m³','','',['AUP17-06'],20]]},
+  'CT-AUP-021':{op:'AUP',num:'4600001021',n:'Transporte y logística de materiales',servs:['Transporte de materiales','Transporte de agua'],vig:'2027-06-30',resp:'Natalia Vera',cc:'4205',ccn:'Logística El Trébol',yacs:['El Trébol','Escalante'],recs:['CM-22'],
     imps:[['AUP-4205-OPEX-01','Logística de materiales y fluidos']],
-    tareas:[['Traslado de cañería','t'],['Traslado de equipo','viaje'],['Transporte de agua','m³']]},
-  'CT-GEN-008':{op:'GEN',n:'Izaje y montaje',cc:'7302',ccn:'Montajes Diadema',yacs:['Diadema'],recs:['HG-14'],
+    tareas:[['Traslado de cañería','t','','',['AUP21-01'],14],['Traslado de equipo','viaje','','',['AUP21-02'],1],['Transporte de agua','m³','','',['AUP21-03','AUP21-04'],30]]},
+  'CT-GEN-008':{op:'GEN',num:'GE-2025-008',n:'Izaje y montaje',servs:['Izaje y montaje'],vig:'2026-12-31',resp:'Pablo Ortiz',cc:'7302',ccn:'Montajes Diadema',yacs:['Diadema'],recs:['HG-14'],
     imps:[['GEN-7302-PM-11','Pulling y montajes programados'],['GEN-7302-PM-12','Montajes de emergencia']],
-    tareas:[['Izaje de bombeador','maniobra'],['Carga y descarga de materiales','maniobra'],['Montaje de tanque','maniobra']]},
-  'CT-GEN-011':{op:'GEN',n:'Obras civiles menores',cc:'7310',ccn:'Obras civiles Diadema / Manantiales Behr',yacs:['Diadema','Manantiales Behr'],recs:['C-03','C-05'],
+    tareas:[['Izaje de bombeador','maniobra','','',['GEN08-01'],2],['Carga y descarga de materiales','maniobra','','',['GEN08-02'],2],['Montaje de tanque','maniobra','','',['GEN08-03'],1]]},
+  'CT-GEN-011':{op:'GEN',num:'GE-2025-011',n:'Obras civiles menores',servs:['Obras civiles Diadema','Obras civiles Manantiales Behr'],vig:'2026-12-31',resp:'Pablo Ortiz',cc:'7310',ccn:'Obras civiles Diadema / Manantiales Behr',yacs:['Diadema','Manantiales Behr'],recs:['C-03','C-05'],
     imps:[['GEN-7310-OC-03','Obras civiles Diadema'],['GEN-7310-OC-04','Obras civiles Manantiales Behr']],
-    tareas:[['Zanjeo manual','m'],['Desmalezado','m²'],['Movimiento de suelo','m³'],['Limpieza de locación','m²']]},
-  'CT-CDO-003':{op:'CDO',n:'Servicios integrales de yacimiento',cc:'5120',ccn:'Operaciones Cañadón Perdido',yacs:['Cañadón Perdido'],recs:['C-05','HG-14','CM-22'],
+    tareas:[['Zanjeo manual','m','','',['GEN11-01'],40],['Desmalezado','m²','','',['GEN11-02'],800],['Movimiento de suelo','m³','','',['GEN11-03'],20],['Limpieza de locación','m²','','',['GEN11-04'],400]]},
+  'CT-CDO-003':{op:'CDO',num:'',n:'Servicios integrales de yacimiento',servs:['Operación de yacimiento','Remediación ambiental'],vig:'',resp:'',cc:'5120',ccn:'Operaciones Cañadón Perdido',yacs:['Cañadón Perdido'],recs:['C-05','HG-14','CM-22'],
     imps:[['CDO-5120-OPS-01','Operación de yacimiento'],['CDO-5120-HSE-02','Remediación ambiental']],
-    tareas:[['Zanjeo manual','m'],['Transporte de agua','m³'],['Retiro de residuos','m³'],['Izaje de bombeador','maniobra']]}
+    tareas:[['Zanjeo manual','m','','',['CDO03-01'],40],['Transporte de agua','m³','','',['CDO03-02'],30],['Retiro de residuos','m³','','',['CDO03-03'],10],['Izaje de bombeador','maniobra','','',['CDO03-04'],2]]}
 };
+/* Ubicaciones de ejemplo con coordenadas INVENTADAS para probar el mapa: no son pozos ni instalaciones reales */
+const D_UBIC=(()=>{const L=[],add=(op,y,pv,c,items)=>items.forEach(([n,t,e,dy,dx])=>L.push({id:'D-'+String(L.length+1).padStart(3,'0'),n,t,op,a:y,y,pv,e:t==='Pozo'?e||'Activo':'',lat:+(c[0]+dy).toFixed(5),lon:+(c[1]+dx).toFixed(5)}));
+  add('AUP','El Trébol','Chubut',[-45.812,-67.598],[['ET-1098','Pozo','Activo',.004,-.011],['ET-1102','Pozo','Activo',.012,-.006],['ET-1130','Pozo','Inactivo',-.009,.014],['ET-1141','Pozo','Abandonado',-.016,-.003],['Batería ET-B3','Batería','',.002,.006],['Batería ET-B1','Batería','',-.012,-.017],['Playa de materiales','Playa de materiales','',.019,.011]]);
+  add('AUP','Escalante','Chubut',[-45.748,-67.702],[['Locación ES-212','Pozo','Activo',.006,.004],['ES-215','Pozo','Activo',-.005,.012],['ES-220','Pozo','Inactivo',.011,-.009],['Batería ES-B2','Batería','',-.002,-.004]]);
+  add('GEN','Diadema','Chubut',[-45.793,-67.672],[['DI-311','Pozo','Activo',.003,.002],['DI-408','Pozo','Activo',-.008,.009],['DI-415','Pozo','Activo',.014,-.007],['DI-420','Pozo','Abandonado',-.013,-.012],['Planta Diadema','Planta de gas','',.006,.017]]);
+  add('GEN','Manantiales Behr','Chubut',[-45.582,-67.618],[['Planta MB-PIAS','Planta de tratamiento de crudo','',0,0],['MB-1201','Pozo','Activo',.009,-.008],['MB-1207','Pozo','Inactivo',-.007,.01]]);
+  add('CDO','Cañadón Perdido','Chubut',[-45.703,-67.876],[['CP-77','Pozo','Activo',.005,-.006],['CP-80','Pozo','Activo',-.004,.008],['CP-90','Pozo','Inactivo',.012,.003],['Batería CP-B3','Batería','',-.01,-.011]]);
+  return L})();
 const D_RECURSOS=[
   {id:'C-01',n:'Cuadrilla 01',k:'Cuadrilla'},
   {id:'C-03',n:'Cuadrilla 03',k:'Cuadrilla'},
@@ -46,7 +56,7 @@ const eqHome=c=>{const r=Object.keys(VEH).find(k=>VEH[k].includes(c));return r?r
 
 function demoCat(){
   const per=[];Object.entries(D_CREW).forEach(([r,a])=>a.forEach((n,i)=>per.push({n,leg:'',rol:roleK(D_RECURSOS.find(x=>x.id===r).k,i)})));D_POOL.forEach(n=>per.push({n,leg:'',rol:'Operario'}));
-  return {src:'demo',file:'',at:'',by:'',clientes:Object.fromEntries(Object.keys(D_OPS).map(k=>[k,{n:D_OPS[k],sup:D_OPSUP[k]}])),
+  return {src:'demo',file:'',at:'',by:'',ubicN:0,clientes:Object.fromEntries(Object.keys(D_OPS).map(k=>[k,{n:D_OPS[k],sup:D_OPSUP[k]}])),
     cuadrillas:D_RECURSOS.map(r=>({id:r.id,n:r.n,k:r.k,pers:D_CREW[r.id].slice(),eqs:D_VEH[r.id].slice()})),personal:per,equipos:Object.assign({},D_EQ),km0:Object.assign({},D_KM0),
     sups:['Pablo Ortiz','Natalia Vera'],rts:['Martín Sosa','Andrea Lucero'],habLoaded:true,novedades:D_NOV.map(([c,t])=>({c,t})),cliUser:{n:'Gustavo Rivas',id:'grivas',op:'AUP'},opUser:{n:'Diego Arce',id:'darce',rec:'C-03'},warns:[]};
 }
@@ -71,7 +81,8 @@ const P0=()=>stamp(dRel(-10),'16:10');
 function seedTrabajos(){
   const T=[],R=dRel;
   const add=o=>{const t=Object.assign({prio:'media',ptw:false,orden:0,hora:'',ind:'',sup:'Pablo Ortiz',rt:'Martín Sosa',cierre:null,ext:null,hist:[{t:P0(),who:'Laura Méndez',a:'Planificado',c:''}]},o);
-    t.imp=t.imp||CONTRATOS0[t.ct].imps[0][0];t.pers=t.pers||CREW[t.rec].slice();t.eqs=t.eqs||VEH[t.rec].slice();T.push(t)};
+    t.imp=t.imp||CONTRATOS0[t.ct].imps[0][0];t.pers=t.pers||CREW[t.rec].slice();t.eqs=t.eqs||VEH[t.rec].slice();
+    const u=D_UBIC.find(x=>x.n===t.pozo&&x.y===t.yac);if(u){t.uid=u.id;t.lat=u.lat;t.lon=u.lon}T.push(t)};
   add({id:'PL-090',ct:'CT-AUP-017',imp:'AUP-4110-OPEX-01',rec:'C-03',yac:'El Trébol',pozo:'ET-1098',inicio:R(-6),dias:4,ptw:true,prev:['Montaje de línea de conducción']});
   add({id:'PL-106',ct:'CT-AUP-021',rec:'CM-22',yac:'El Trébol',pozo:'Playa de materiales',inicio:R(-6),dias:3,prev:['Traslado de cañería','Transporte de agua']});
   add({id:'PL-093',ct:'CT-AUP-017',imp:'AUP-4110-OPEX-02',rec:'C-01',yac:'Escalante',pozo:'Locación ES-212',inicio:R(-4),dias:6,prio:'alta',ptw:true,prev:['Desmalezado','Armado de cerco perimetral'],ind:'Cercar la locación completa antes del montaje del equipo de workover.'});
@@ -93,10 +104,10 @@ function seedTrabajos(){
   return T;
 }
 const unit0=(ct,d)=>((CTS[ct].tareas.find(x=>x[0]===d))||[0,''])[1];
-function snap(t,fecha){const cc=(S&&S.contratos&&S.contratos[t.ct])||CTS[t.ct]||{};return {pl:t.id,dia:diffD(t.inicio,fecha),fecha,ct:t.ct,imp:t.imp,op:cc.op,cc:t.cc||cc.cc,ccn:t.ccn||cc.ccn,yac:t.yac||'',pozo:t.pozo,rec:t.rec,prio:t.prio,ptw:t.ptw,orden:t.orden||0,hora:t.hora||'',prev:t.prev.slice(),ind:t.ind,sup:t.sup,rt:t.rt,pers:t.pers.slice(),eqs:t.eqs.slice()}}
+function snap(t,fecha){const cc=(S&&S.contratos&&S.contratos[t.ct])||CTS[t.ct]||{};return {pl:t.id,dia:diffD(t.inicio,fecha),fecha,ct:t.ct,imp:t.imp,op:cc.op,cc:t.cc||cc.cc,ccn:t.ccn||cc.ccn,yac:t.yac||'',pozo:t.pozo,uid:t.uid||'',lat:t.lat??'',lon:t.lon??'',rec:t.rec,prio:t.prio,ptw:t.ptw,orden:t.orden||0,hora:t.hora||'',prev:t.prev.slice(),ind:t.ind,sup:t.sup,rt:t.rt,pers:t.pers.slice(),eqs:t.eqs.slice()}}
 function genEjec(t,fecha){
   const i=diffD(t.inicio,fecha),g=diffD(dRel(-7),fecha),op=CTS[t.ct].op;
-  const Q={'m²':[350,60],'m':[45,9],'m³':[18,5],'t':[14,2],'viaje':[3,1],'maniobra':[2,0],'h':[8,0],'km':[60,10],'unidad':[4,1],'día':[1,0]};
+  const Q={'m²':[350,60],'m':[45,9],'m³':[18,5],'t':[14,2],'viaje':[3,1],'maniobra':[2,0],'h':[8,0],'km':[60,10],'unidad':[4,1],'día':[1,0],'mes':[1,0],'punto':[20,4]};
   const qOf=d=>{const u=unit0(t.ct,d),q=Q[u]||[5,1];return [q[0]+(i%3)*q[1],u]};
   const reg=[{c:'tr',de:'06:45',a:'07:40',d:'Base → '+t.pozo,q:'',u:'',det:''}];
   const n=t.prev.length,h=Math.ceil(n/2),am=t.prev.slice(0,h),pm=n>1?t.prev.slice(h):t.prev;
@@ -176,11 +187,13 @@ function exampleSeed(){
     if(!pers.length)return;
     const eqs=((VEH[r.id]||[]).length?VEH[r.id]:c.eqs).slice(0,4);
     const ccl=c.ccs||[[c.cc,c.ccn]],ccM=ccl[ccMatch(c,r.id)];
-    const mk=(off,dias,k,orden,hora)=>{const cx=ccM||pk(ccl,k+ri);const t={id:'PL-'+(n++),ct,imp:pk(c.imps,k+ri)[0]||'',cc:cx[0],ccn:cx[1],rec:r.id,yac:'',pozo:pk(c.ubic,ri+k)||'Ubicación a definir',inicio:addDays(TODAY,off),dias,prio:k===1&&ri%3===0?'alta':'media',ptw:ri%2===0,orden:orden||0,hora:hora||'',ind:'',sup:SUPS[0],rt:RTS[0],pers:pers.slice(),eqs:eqs.slice(),prev:c.tareas.slice(k%2,k%2+2).map(x=>x[0]),cierre:null,ext:null,hist:[{t:P0(),who:'Laura Méndez',a:'Planificado',c:''}]};
+    // con ubicaciones importadas, la planificación de ejemplo usa lugares reales del cliente (primero instalaciones)
+    const UL=UB.list.filter(u=>u.op===c.op),UL2=UL.filter(u=>u.t!=='Pozo'),UP=UL2.length?UL2:UL,pickU=k=>UP.length?UP[(ri*3+k)%UP.length]:null;
+    const mk=(off,dias,k,orden,hora)=>{const cx=ccM||pk(ccl,k+ri),u=pickU(k);const t={id:'PL-'+(n++),ct,imp:pk(c.imps,k+ri)[0]||'',cc:cx[0],ccn:cx[1],rec:r.id,yac:u?(u.y||u.a):'',pozo:u?u.n:(pk(c.ubic,ri+k)||'Ubicación a definir'),uid:u?u.id:'',lat:u?u.lat:'',lon:u?u.lon:'',inicio:addDays(TODAY,off),dias,prio:k===1&&ri%3===0?'alta':'media',ptw:ri%2===0,orden:orden||0,hora:hora||'',ind:'',sup:SUPS[0],rt:RTS[0],pers:pers.slice(),eqs:eqs.slice(),prev:c.tareas.slice(k%2,k%2+2).map(x=>x[0]),cierre:null,ext:null,hist:[{t:P0(),who:'Laura Méndez',a:'Planificado',c:''}]};
       if(!t.prev.length&&c.tareas.length)t.prev=[c.tareas[0][0]];if(!t.prev.length)return null;T.push(t);return t};
     const op=r.id===USERS.operador.rec;
     const a=mk(-6,3,0),b=mk(-1,4,1,op?1:0,op?'07:30':'');mk(3,3,2);
-    if(op&&c.ubic.length>1)mk(0,1,3,2,'15:00');   // segundo trabajo del día para la cuadrilla del operador
+    if(op&&(UP.length>1||c.ubic.length>1))mk(0,1,3,2,'15:00');   // segundo trabajo del día para la cuadrilla del operador
     if(a)['cert','cert','apr'].forEach((e,i)=>P.push(mkParte(a,addDays(a.inicio,i),e)));
     if(b){P.push(mkParte(b,b.inicio,'env'));
       if(op)P.push(mkParte(b,TODAY,'curso',p=>{const e=p.ejec;e.firma=null;e.clima=null;e.equipos.forEach(q=>q.km='');e.reg=e.reg.slice(0,2);if(e.permiso)e.permiso={num:'',firmo:'',hora:''}}))}

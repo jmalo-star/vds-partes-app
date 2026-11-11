@@ -4,7 +4,7 @@
    el ámbito global: config → util → data → import → state → ui
    → vistas → modals → export → actions → main.
    ============================================================ */
-const APP_VERSION='0.9.2';
+const APP_VERSION='0.10.0';
 const KEY='vds-partes-proto-7';          // estado guardado en el dispositivo (localStorage)
 const THEME_KEY='vds-theme';             // preferencia de modo diurno / nocturno
 const EVAL=true;                         // versión de evaluación: usuarios de prueba y datos locales
@@ -25,7 +25,7 @@ const ROLE_N={admin:'Administrador',planner:'Planner',operador:'Operador',client
 const ROLE_D={admin:'Ve y cambia todo, y ve el registro de actividad',planner:'Planifica los trabajos y aprueba los partes',operador:'Completa el parte diario y cierra el trabajo',cliente:'Dashboard, exportación a Excel y certificación con firma'};
 const HOME={admin:'p-plan',planner:'p-plan',operador:'o-day',cliente:'c-dash'};
 
-const UNITS=['m³','m²','m','t','km','viaje','maniobra','h','día','unidad'];
+const UNITS=['m³','m²','m','t','km','viaje','maniobra','h','día','mes','unidad','punto'];   // punto: puntos de recorredor
 const TCAT={op:'Operativo',tr:'Traslado',es:'Espera operadora',vi:'Parada por viento',sb:'Standby',rf:'Refrigerio'};
 const TORD=['op','tr','es','vi','sb','rf'];
 const ESP=['Permiso de trabajo','Responsable Operadora','Espera de un Tercero','Almacén'];

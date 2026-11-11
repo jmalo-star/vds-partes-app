@@ -91,8 +91,13 @@ const A={
   'm-dias':d=>{const f=UI.modal.f;const ed=UI.modal.edit?trab(UI.modal.edit):null;f.dias=Math.max(ed?minDias(ed):1,Math.min(30,f.dias+Number(d.d)));render()},
   'm-tadd':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];if(!o.prev.includes(d.n))o.prev.push(d.n);if(UI.modal.err.jobs)delete UI.modal.err.jobs[Number(d.i)+1];render()},
   'm-tdel':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];o.prev=o.prev.filter(x=>x!==d.t);render()},
-  'm-ulist':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];o.uo=false;o.pozo='';render()},
-  'm-jadd':()=>{const f=UI.modal.f;if(!Number(f.orden))f.orden='1';const used=[f,...f.more].map(x=>Number(x.orden));f.more.push({pozo:'',uo:!(CT(f.ct).ubic||[]).length,prev:[],hora:'',orden:String(ORDS.map(x=>x[0]).find(k=>k&&!used.includes(k)))});render();setTimeout(()=>{const b=$('.jlist');if(b)b.scrollTop=b.scrollHeight},30)},
+  'm-ulist':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];Object.assign(o,{uo:false,pozo:'',yac:'',uid:'',lat:'',lon:''});render();
+    setTimeout(()=>{const t=$('#m-pozo'+(Number(d.i)+1));if(t)t.focus()},30)},
+  /* ubicaciones con coordenadas: elegir una, cambiarla o escribir otra (sin mapa) */
+  'm-upick':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i],u=UB.byId[d.u];if(!u)return;Object.assign(o,{uo:false,pozo:u.n,yac:u.y||u.a,uid:u.id,lat:u.lat,lon:u.lon});if(UI.modal.err.jobs)delete UI.modal.err.jobs[Number(d.i)+1];render()},
+  'm-uclr':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];Object.assign(o,{pozo:'',yac:'',uid:'',lat:'',lon:''});render();setTimeout(()=>{const t=$('#m-pozo'+(Number(d.i)+1));if(t)t.focus()},30)},
+  'm-uotra':d=>{const f=UI.modal.f,o=Number(d.i)<0?f:f.more[d.i];Object.assign(o,{uo:true,pozo:'',yac:'',uid:'',lat:'',lon:''});render();setTimeout(()=>{const t=$('#m-pozo'+(Number(d.i)+1));if(t)t.focus()},30)},
+  'm-jadd':()=>{const f=UI.modal.f;if(!Number(f.orden))f.orden='1';const used=[f,...f.more].map(x=>Number(x.orden));f.more.push({pozo:'',yac:'',uid:'',lat:'',lon:'',uo:!(CT(f.ct).ubic||[]).length&&!ubicN(CT(f.ct).op),prev:[],hora:'',orden:String(ORDS.map(x=>x[0]).find(k=>k&&!used.includes(k)))});render();setTimeout(()=>{const b=$('.jlist');if(b)b.scrollTop=b.scrollHeight},30)},
   'm-jdel':d=>{const f=UI.modal.f;f.more.splice(Number(d.i),1);UI.modal.err.jobs={};render()},
   'm-padd':d=>{const f=UI.modal.f;if(!f.pers.includes(d.n))f.pers.push(d.n);UI.modal.err.pers='';render()},
   'm-pdel':d=>{const f=UI.modal.f;f.pers=f.pers.filter(x=>x!==d.n);render()},
@@ -128,7 +133,11 @@ const A={
   regen:()=>askWhy('Regenerar la planificación de ejemplo','Se reemplazan los trabajos y partes por una planificación de ejemplo nueva sobre los datos actuales. Los catálogos, habilitaciones, permisos y el registro se conservan.','Regenerar',m=>{if(S.cat.src==='demo'){const keep={log:S.log,adm:S.adm,user:S.user};S=fresh();Object.assign(S,keep,{route:'a-conf',ctab:'datos'})}else{regenExamples();S.ctab='datos'}logA('Planificación de ejemplo regenerada','','',m,'config');toast('Planificación de ejemplo regenerada')}),
   'cat-demo':()=>askWhy('Volver a los datos de ejemplo','Se reemplazan los catálogos y la planificación por los datos de ejemplo. El registro de actividad y los permisos se conservan.','Volver a los de ejemplo',m=>{const log=S.log,adm=S.adm,user=S.user;S=fresh();Object.assign(S,{log,adm,user,route:'a-conf'});logA('Datos de ejemplo restaurados','','',m,'config');toast('Se restauraron los datos de ejemplo')}),
   'imp-apply':()=>{const f=UI.modal.f;if(!(f.mot||'').trim()){UI.modal.err='Contá por qué se importan estos datos.';render();return}const r=UI.imp;
-    S.cat=r.cat;S.contratos=r.contratos;S.hab=r.hab;applyCat(S.cat);CTS=S.contratos;const s=exampleSeed();Object.assign(S,baseState(),{user:S.user,route:'a-conf',ctab:'datos',trabajos:s.T,partes:s.P});
+    const prevU=S.cat.src!=='demo'?S.cat.ubicN||0:0;
+    S.cat=r.cat;S.contratos=r.contratos;S.hab=r.hab;applyCat(S.cat);CTS=S.contratos;
+    // ubicaciones con coordenadas: las del archivo; si el archivo no trae, quedan las importadas antes
+    if(r.ubic){ubicSet(r.ubic);S.cat.ubicN=r.ubic.length;ubicSave(r.ubic).catch(()=>toast('No se pudieron guardar las ubicaciones en este dispositivo'))}else{S.cat.ubicN=prevU;if(!prevU)ubicSet([])}
+    const s=exampleSeed();Object.assign(S,baseState(),{user:S.user,route:'a-conf',ctab:'datos',trabajos:s.T,partes:s.P});
     logA('Datos maestros importados',r.cat.file,`${Object.keys(r.contratos).length} contratos · ${r.cat.cuadrillas.length} cuadrillas · ${r.cat.personal.length} personas · ${Object.keys(r.cat.equipos).length} equipos`,f.mot.trim(),'config');
     UI.imp=null;UI.modal=null;UI.drawer=null;toast('Datos importados. Se generó una planificación de ejemplo para probar los flujos.');render()},
   'd-clrdate':()=>{S.dfrom='';S.dto='';render()},
@@ -146,7 +155,7 @@ const A={
   'xls-dash':()=>exportDash(),
   'xls-log':()=>exportLog(),
   'why-cancel':()=>{UI.modal=UI.whyBack||null;UI.whyFn=null;UI.whyBack=null;render()},
-  'c-addtask':d=>{const n=UI.newT[d.ct];if(!n||!n.d.trim()){toast('Escribí el nombre de la tarea');render();return}const c=CT(d.ct);if(c.tareas.some(x=>norm(x[0])===norm(n.d))){toast('Esa tarea ya está en el catálogo');render();return}c.tareas.push([n.d.trim(),n.u,'']);logA('Tarea agregada al catálogo',d.ct,`${n.d.trim()} (${n.u})`,'','config');toast(`Tarea agregada a ${d.ct}`);UI.newT[d.ct]={d:'',u:n.u};render()},
+  'c-addtask':d=>{const n=UI.newT[d.ct];if(!n||!n.d.trim()){toast('Escribí el nombre de la tarea');render();return}const c=CT(d.ct);if(c.tareas.some(x=>norm(x[0])===norm(n.d))){toast('Esa tarea ya está en el catálogo');render();return}c.tareas.push([n.d.trim(),n.u,'','',[],'']);logA('Tarea agregada al catálogo',d.ct,`${n.d.trim()} (${n.u})`,'','config');toast(`Tarea agregada a ${d.ct}`);UI.newT[d.ct]={d:'',u:n.u};render()},
   'c-deltask':d=>{const c=CT(d.ct);const x=c.tareas.splice(Number(d.i),1)[0];logA('Tarea quitada del catálogo',d.ct,`${x[0]} (${x[1]})`,'','config');toast(`Quitada: ${x[0]}`);render()},
   'c-addimp':d=>{const n=UI.newI[d.ct];const cd=(n&&n.c||'').trim().toUpperCase().replace(/\s+/g,'-');if(!cd){toast('Escribí el código de la imputación');render();return}const c=CT(d.ct);if(c.imps.some(x=>x[0].toUpperCase()===cd)){toast('Esa imputación ya existe');render();return}c.imps.push([cd,(n.n||'').trim(),'']);logA('Imputación agregada',d.ct,[cd,(n.n||'').trim()].filter(Boolean).join(' · '),'','config');UI.newI[d.ct]={c:'',n:''};toast(`Imputación ${cd} agregada a ${d.ct}`);render()},
   'c-delimp':d=>{const c=CT(d.ct);const x=c.imps[Number(d.i)];if(S.trabajos.some(t=>t.ct===d.ct&&t.imp===x[0])){toast(`${x[0]} está en uso por trabajos: no se puede quitar`);render();return}if(c.imps.length<=1){toast('El contrato necesita al menos una imputación');render();return}c.imps.splice(Number(d.i),1);logA('Imputación quitada',d.ct,[x[0],x[1]].filter(Boolean).join(' · '),'','config');toast(`Quitada: ${x[0]}`);render()},
@@ -237,17 +246,18 @@ function submitTrab(){
   const ordBad=jobs.some(o=>ordErrForm(f,o,M.edit?trab(M.edit):null));if(ordBad)toast('El orden y la hora de los trabajos no coinciden: revisalos para poder guardar');
   if(ordBad||Object.keys(M.err.jobs).length||M.err.pers||M.err.mot){render();setTimeout(()=>{const b=$('.job.bad');if(b)b.scrollIntoView({block:'nearest'})},30);return}
   const cU=CT(f.ct);cU.ubic=cU.ubic||[];
-  jobs.forEach(o=>{const fu=cU.ubic.find(u=>norm(u)===norm(o.pozo));if(fu)o.pozo=fu;else{o.pozo=o.pozo.trim();cU.ubic.push(o.pozo);logA('Ubicación agregada al catálogo',f.ct,o.pozo,'','config')}});
+  jobs.forEach(o=>{if(o.uid)return;o.yac='';o.lat='';o.lon='';const fu=cU.ubic.find(u=>norm(u)===norm(o.pozo));if(fu)o.pozo=fu;else{o.pozo=o.pozo.trim();cU.ubic.push(o.pozo);logA('Ubicación agregada al catálogo',f.ct,o.pozo,'','config')}});
   const ccx=(cU.ccs||[[cU.cc,cU.ccn]])[Number(f.ccsel)||0]||[cU.cc,cU.ccn];
-  const vals={ct:f.ct,imp:f.imp,cc:ccx[0],ccn:ccx[1],rec:f.rec,yac:'',pozo:f.pozo.trim(),inicio:f.inicio,dias:f.dias,prio:f.prio,ptw:f.ptw,hora:mins(f.hora)!=null?f.hora:'',orden:Number(f.orden)||0,sup:f.sup,rt:f.rt,prev:f.prev.slice(),ind:f.ind.trim(),pers:f.pers.slice(),eqs:f.eqs.slice()};
+  const geo=o=>({yac:o.uid?o.yac||'':'',pozo:o.pozo.trim(),uid:o.uid||'',lat:o.uid?o.lat:'',lon:o.uid?o.lon:''});
+  const vals={ct:f.ct,imp:f.imp,cc:ccx[0],ccn:ccx[1],rec:f.rec,...geo(f),inicio:f.inicio,dias:f.dias,prio:f.prio,ptw:f.ptw,hora:mins(f.hora)!=null?f.hora:'',orden:Number(f.orden)||0,sup:f.sup,rt:f.rt,prev:f.prev.slice(),ind:f.ind.trim(),pers:f.pers.slice(),eqs:f.eqs.slice()};
   if(M.edit){const t=trab(M.edit);const ch=[];
-    [['ct','contrato'],['imp','imputación'],['cc','centro de costo'],['rec','recurso'],['pozo','ubicación'],['inicio','inicio'],['dias','duración'],['prio','prioridad'],['ptw','permiso'],['hora','hora de inicio'],['orden','orden en el día'],['sup','supervisor'],['rt','responsable técnico'],['ind','indicaciones']].forEach(([k,l])=>{const before=k==='cc'?(t.cc||CT(t.ct).cc):k==='pozo'?locOf(t):k==='hora'?(t.hora||''):k==='orden'?(t.orden||0):t[k];if(String(before)!==String(vals[k]))ch.push(l)});
+    [['ct','contrato'],['imp','imputación'],['cc','centro de costo'],['rec','recurso'],['pozo','ubicación'],['inicio','inicio'],['dias','duración'],['prio','prioridad'],['ptw','permiso'],['hora','hora de inicio'],['orden','orden en el día'],['sup','supervisor'],['rt','responsable técnico'],['ind','indicaciones']].forEach(([k,l])=>{const before=k==='cc'?(t.cc||CT(t.ct).cc):k==='pozo'?locOf(t):k==='hora'?(t.hora||''):k==='orden'?(t.orden||0):t[k];if(String(before)!==String(k==='pozo'?locOf(vals):vals[k]))ch.push(l)});
     if(t.prev.join('|')!==vals.prev.join('|'))ch.push('tareas');if(t.pers.join('|')!==vals.pers.join('|'))ch.push('personas');if(t.eqs.join('|')!==vals.eqs.join('|'))ch.push('equipos');
     Object.assign(t,vals);
     t.hist.push({t:nowT(),who:meN(),a:'Editado: '+(ch.join(', ')||'sin cambios'),c:f.mot.trim()});logA('Trabajo editado',t.id,'Cambió: '+(ch.join(', ')||'sin cambios'),f.mot.trim(),'trabajo');UI.modal=null;UI.drawer=t.id;toast(`${t.id} actualizado`);render();return}
   const n0=Math.max(0,...S.trabajos.map(t=>Number(t.id.slice(3))||0))+1;
   const ts=[...jobs].sort((a,b)=>Number(a.orden)-Number(b.orden)).map((o,i)=>{const id='PL-'+String(n0+i).padStart(3,'0');
-    const t=Object.assign({id,cierre:null,ext:null,hist:[{t:nowT(),who:meN(),a:jobs.length>1?`Planificado junto con ${jobs.map((_,k)=>'PL-'+String(n0+k).padStart(3,'0')).filter(x=>x!==id).join(', ')}`:'Planificado',c:''}]},vals,{pozo:o.pozo,prev:o.prev.slice(),hora:mins(o.hora)!=null?o.hora:'',orden:Number(o.orden)||0});
+    const t=Object.assign({id,cierre:null,ext:null,hist:[{t:nowT(),who:meN(),a:jobs.length>1?`Planificado junto con ${jobs.map((_,k)=>'PL-'+String(n0+k).padStart(3,'0')).filter(x=>x!==id).join(', ')}`:'Planificado',c:''}]},vals,geo(o),{prev:o.prev.slice(),hora:mins(o.hora)!=null?o.hora:'',orden:Number(o.orden)||0});
     S.trabajos.push(t);logA('Trabajo planificado',id,`${recOf(f.rec).n} · ${o.pozo} · ${fDay(f.inicio)} → ${fDay(tEnd(t))} · ${f.imp}${jobs.length>1?' · '+ORDS[t.orden][1]+' del día':''}`,'','trabajo');return t});
   UI.modal=null;const t=ts[0],cl=clashes(t).filter(x=>!ts.includes(x));
   toast(`${ts.map(x=>x.id).join(', ')} ${ts.length>1?'planificados':'planificado'} · ${recOf(f.rec).n}, ${fDay(f.inicio)} → ${fDay(tEnd(t))}${cl.length?' · comparte días con '+cl.map(x=>x.id).join(', '):''}`);render();
