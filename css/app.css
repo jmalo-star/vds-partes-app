@@ -243,6 +243,19 @@ select.w120{width:120px;flex:none}
 .cbx-o small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cbx-g{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:9px 10px 4px}
 .cbx-none{padding:12px;color:var(--muted);font-size:13.5px}
+/* dd: desplegable propio para elegir un valor (en lugar del select/datalist del navegador) */
+.dd{position:relative;min-width:0}
+.ddb{display:flex;align-items:center;gap:8px;text-align:left;cursor:pointer}
+.ddb .ddv{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ddb .ddv.ph{color:var(--muted);font-weight:400}
+.ddb>.i{width:16px;height:16px;flex:none;color:var(--muted);transition:transform .15s}
+.ddb[aria-expanded="true"]{border-color:var(--hot);box-shadow:0 0 0 3px color-mix(in srgb,var(--hot) 20%,transparent)}
+.ddb[aria-expanded="true"]>.i{transform:rotate(180deg)}
+.cbx-o.sel b{color:var(--hot)}
+.cbx-o>.i{width:17px;height:17px;flex:none;color:var(--hot)}
+.cbx-o.otra{margin-top:4px;border-top:1px solid var(--line);border-radius:0 0 8px 8px}
+.cbx-o.otra>.i{color:var(--muted)}
+.ddt{display:flex;gap:6px;align-items:center}.ddt .inp{flex:1;min-width:0}
 
 /* ---------- ingreso ---------- */
 .lgn{position:relative;flex:1;display:grid;grid-template-columns:minmax(0,1fr) 430px;grid-template-rows:auto minmax(0,1fr);padding:22px 44px 30px;column-gap:56px;color:#fff;overflow:hidden;background:#0b1118}

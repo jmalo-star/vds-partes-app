@@ -73,6 +73,16 @@ function cbx(key,ph,groups,act,extra){
   return `<div class="cbx" data-cbx="${key}">${ic('search')}<input class="inp" type="text" placeholder="${esc(ph)}" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-label="${esc(ph)}"><template>${body||'<div class="cbx-none">No queda nada para agregar.</div>'}</template></div>`;
 }
 
+/* Desplegable propio para elegir un valor (abre la misma lista que cbx). Reemplaza al <select> y al <datalist>
+   del navegador: la pantalla está escalada y la lista nativa se abre fuera de escala y desacomodada.
+   groups: [[título|null,[{v,t,s}]]] · o.otra: texto de la opción para escribir un valor que no está en la lista */
+function dd(id,bind,cur,ph,groups,o={}){
+  const opt=x=>{const on=x.v===cur;return `<button type="button" class="cbx-o${on?' sel':''}" role="option" aria-selected="${on}" data-a="dd-pick" data-b="${esc(bind)}" data-v="${esc(x.v)}"><span class="nm"><b>${esc(x.t||x.v)}</b>${x.s?`<small>${esc(x.s)}</small>`:''}</span>${on?ic('check'):''}</button>`};
+  const body=groups.filter(g=>g[1].length).map(([lab,items])=>(lab?`<div class="cbx-g">${esc(lab)}</div>`:'')+items.map(opt).join('')).join('')
+    +(o.otra?`<button type="button" class="cbx-o otra" role="option" data-a="dd-otra" data-b="${esc(bind)}" data-f="${esc(id)}">${ic('edit')}<span class="nm"><b>${esc(o.otra)}</b></span></button>`:'');
+  return `<div class="dd"><button type="button" class="inp ddb${o.soft?' soft':''}" id="${id}" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-label="${esc(o.lab||ph)}"><span class="ddv${cur?'':' ph'}">${esc(cur||ph)}</span>${ic('down')}</button><template>${body||'<div class="cbx-none">No hay opciones.</div>'}</template></div>`;
+}
+
 /* ---------- ingreso ---------- */
 function login(){
   const L=UI.login,dark=themeNow()==='dark',[ti,tl]=themeLbl();

@@ -115,9 +115,15 @@ function tbar(p){
 function stReg(p,e){
   const ecats=e.equipos.map(q=>EQ[q.c]),cat=CT(p.ct).tareas.filter(t=>!t[2]||ecats.includes(t[2]));
   const order=e.reg.map((r,i)=>[r,i]).sort((a,b)=>(mins(a[0].de)??9999)-(mins(b[0].de)??9999));
-  const rows=order.map(([r,i])=>{const op=r.c==='op',vi=r.c==='vi',es=r.c==='es';
-    const dCell=es?`<select class="inp${!r.d?' soft':''}" id="f-rd${i}" data-bind="e:reg.${i}.d" data-rr aria-label="Motivo de la espera"><option value="">Motivo de la espera…</option>${ESP.map(m=>`<option${r.d===m?' selected':''}>${m}</option>`).join('')}</select>`
-      :`<input class="inp${op&&!r.d?' soft':''}" id="f-rd${i}" list="${op?'dl-cat':''}" data-bind="e:reg.${i}.d" data-rr value="${esc(r.d)}" placeholder="${op?'Elegí del catálogo o escribí la tarea':'Detalle (opcional)'}" aria-label="${op?'Tarea':'Detalle'}">${op&&r.d&&!inCat(p.ct,r.d)?'<div class="sm warn">Fuera del catálogo del contrato</div>':''}`;
+  const prevT=cat.filter(t=>p.prev.includes(t[0])),restT=cat.filter(t=>!p.prev.includes(t[0]));
+  const tOpt=t=>({v:t[0],s:t[1]?'Se mide en '+t[1]:''});
+  const tGroups=prevT.length?[['Previstas para hoy',prevT.map(tOpt)],['Otras del contrato',restT.map(tOpt)]]:[[null,cat.map(tOpt)]];
+  const rows=order.map(([r,i])=>{const op=r.c==='op',vi=r.c==='vi',es=r.c==='es',b=`e:reg.${i}.d`;
+    const free=op&&((UI.ddo||{})[b]||(r.d&&!inCat(p.ct,r.d)));
+    const dCell=es?dd(`f-rd${i}`,b,r.d,'Motivo de la espera…',[[null,ESP.map(m=>({v:m}))]],{soft:!r.d,lab:'Motivo de la espera'})
+      :op&&!free?dd(`f-rd${i}`,b,r.d,'Elegí la tarea…',tGroups,{soft:!r.d,lab:'Tarea',otra:'Otra tarea: escribirla…'})
+      :op?`<div class="ddt"><input class="inp${!r.d?' soft':''}" id="f-rd${i}" data-bind="${b}" data-rr value="${esc(r.d)}" placeholder="Escribí la tarea que se hizo" autocomplete="off" aria-label="Tarea"><button type="button" class="ibtn" data-a="dd-list" data-b="${b}" data-f="f-rd${i}" title="Elegir del catálogo" aria-label="Elegir la tarea del catálogo">${ic('list')}</button></div>${r.d?'<div class="sm warn">Fuera del catálogo del contrato</div>':''}`
+      :`<input class="inp" id="f-rd${i}" data-bind="${b}" data-rr value="${esc(r.d)}" placeholder="Detalle (opcional)" aria-label="Detalle">`;
     const qCell=op||vi?`<input class="inp${!(Number(r.q)>0)?' soft':''}" type="number" step="any" inputmode="decimal" min="0" max="${vi?LIM.viento[1]:LIM.cant[1]}" id="f-rq${i}" data-bind="e:reg.${i}.q" data-rr value="${esc(r.q)}" aria-label="${vi?'Velocidad del viento':'Cantidad'}" placeholder="${vi?'Ráfaga':''}">`:'';
     const uCell=op?`<select class="inp" id="f-ru${i}" data-bind="e:reg.${i}.u" data-rr aria-label="Unidad"><option value=""></option>${UNITS.map(u=>`<option${r.u===u?' selected':''}>${u}</option>`).join('')}</select>`:vi?'<span class="unit">km/h</span>':'';
     return `<tr class="cat c-${r.c}"><td class="w160"><select class="inp" id="f-rc${i}" data-bind="e:reg.${i}.c" data-rr aria-label="Categoría">${TORD.map(k=>`<option value="${k}"${r.c===k?' selected':''}>${TCAT[k]}</option>`).join('')}</select></td>
@@ -125,8 +131,7 @@ function stReg(p,e){
     <td>${dCell}</td><td class="w86">${qCell}</td><td class="w90">${uCell}</td>
     <td class="num w64">${fmtH(dur(r.de,r.a))}</td><td class="w44"><button class="ibtn del" data-a="o-delr" data-i="${i}" aria-label="Quitar tramo">${ic('trash')}</button></td></tr>`}).join('');
   const pr=prod(p),pend=p.prev.filter(d=>!e.reg.some(x=>x.c==='op'&&(d===OTRA?x.d&&!inCat(p.ct,x.d):x.d===d)));
-  return `<datalist id="dl-cat">${cat.map(([d])=>`<option value="${esc(d)}"></option>`).join('')}</datalist>
-  <div class="pnl daysum"><div class="dsh"><h3>Resumen del día</h3><span class="sm">${fmtH(sums(p).jor)} registradas · de 06:00 a 20:00</span><span class="sp"></span><span class="sm prod">${pr.length?'Producción: '+pr.map(x=>`<b>${esc(x.d)}</b> ${x.q?num(x.q)+' '+esc(x.u):'—'}`).join(' · '):'Todavía no hay tareas operativas'}</span></div>${tbar(p)}</div>
+  return `<div class="pnl daysum"><div class="dsh"><h3>Resumen del día</h3><span class="sm">${fmtH(sums(p).jor)} registradas · de 06:00 a 20:00</span><span class="sp"></span><span class="sm prod">${pr.length?'Producción: '+pr.map(x=>`<b>${esc(x.d)}</b> ${x.q?num(x.q)+' '+esc(x.u):'—'}`).join(' · '):'Todavía no hay tareas operativas'}</span></div>${tbar(p)}</div>
   <div class="pnl col fill regp">
   <div class="body" data-keep="t"><table class="tbl sticky regtbl"><thead><tr><th>Categoría</th><th>Desde</th><th>Hasta</th><th>Tarea / motivo / detalle</th><th>Cantidad</th><th>Unidad</th><th class="num">Dur.</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8"><div class="empty">Agregá el primer tramo del día: normalmente el traslado desde base.</div></td></tr>'}</tbody></table></div>
   <div class="pfoot regadd">${TORD.map(k=>`<button class="chip add sm3" data-a="o-addr" data-c="${k}"><span class="cdot c-${k}"></span>${k==='op'?'Tarea operativa':TCAT[k]}</button>`).join('')}${pend.map(d=>d===OTRA?`<button class="chip add sm3" data-a="o-addr" data-c="op" data-d="" title="Estaba prevista una tarea fuera del catálogo: escribí cuál se hizo">${ic('plus')}Otra tarea <span class="n">prevista · escribí cuál</span></button>`:`<button class="chip add sm3" data-a="o-addr" data-c="op" data-d="${esc(d)}">${ic('plus')}${esc(d)} <span class="n">prevista</span></button>`).join('')}<span class="sp"></span><span class="sm" title="Registrala con la velocidad de las ráfagas en km/h cuando superan 60 km/h y se suspenden izajes o trabajos en altura. La operadora la reconoce como tiempo no imputable a la cuadrilla.">${ic('wind')} Parada por viento: con ráfagas de más de 60 km/h</span></div></div>`;

@@ -1,6 +1,6 @@
 /* ---------- estado, almacenamiento y reglas del negocio ---------- */
 let S=null;
-const UI={modal:null,drawer:null,toast:null,login:{u:'',p:'',err:'',show:false,demo:false},vcom:'',verr:'',csig:null,sig:'',admEst:'',newT:{},newI:{},newU:{},tp:{},whyTxt:'',whyFn:null,whyBack:null,editSnap:null,ptPrev:null,imp:null,pop:null,clima:false};
+const UI={modal:null,drawer:null,toast:null,login:{u:'',p:'',err:'',show:false,demo:false},vcom:'',verr:'',csig:null,sig:'',admEst:'',newT:{},newI:{},newU:{},tp:{},whyTxt:'',whyFn:null,whyBack:null,editSnap:null,ptPrev:null,imp:null,pop:null,clima:false,ddo:{}};
 const NET={online:navigator.onLine!==false};
 
 function baseState(){return {user:null,route:'login',back:null,sel:null,step:0,vf:'env',vsel:null,vop:'all',cf:'apr',csel:null,pf:'all',lop:'all',lct:'all',lrec:'all',lq:'',hf:'p',hq:'',hbad:false,pv:'gantt',fop:'all',fct:'all',

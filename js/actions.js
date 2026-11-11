@@ -25,7 +25,7 @@ function setBind(path,val){
   if(root==='q'){applyCat(S.cat);logA('Cuadrilla renombrada',S.cat.cuadrillas[keys[0]].id,val,'','config')}
   if(root==='e'&&keys[0]==='reg'){const p=cur(),r=p.ejec.reg[keys[1]];
     if(keys[2]==='d'&&r.c==='op'){const u=unitOf(p.ct,val);if(u)r.u=u}
-    if(keys[2]==='c'){if(val==='vi'){r.u='km/h';r.q='';if(r.d&&ESP.includes(r.d))r.d=''}else if(val==='op'){r.u=unitOf(p.ct,r.d)||'';r.q=''}else{r.q='';r.u=''}if(val==='es'&&!ESP.includes(r.d))r.d='';if(val!=='es'&&ESP.includes(r.d))r.d=''}}
+    if(keys[2]==='c'){delete UI.ddo['e:reg.'+keys[1]+'.d'];if(val==='vi'){r.u='km/h';r.q='';if(r.d&&ESP.includes(r.d))r.d=''}else if(val==='op'){r.u=unitOf(p.ct,r.d)||'';r.q=''}else{r.q='';r.u=''}if(val==='es'&&!ESP.includes(r.d))r.d='';if(val!=='es'&&ESP.includes(r.d))r.d=''}}
 }
 function moveT(t,inicio,dias,why){
   const sim=Object.assign({},t,{inicio,dias}),oc=ordChoque(sim,t)[0];if(oc){toast(`${t.id} no se movió. ${ordMalTxt(oc,sim)}`);return false}
@@ -159,7 +159,7 @@ const A={
     if(t&&t.ext&&t.ext.parte===p.id){t.ext=null;t.hist.push({t:nowT(),who:meN(),a:`Pedido de días en suspenso: se reabrió ${p.id} para corregirlo`,c:''})}
     p.hist.push({t:nowT(),who:meN(),a:'Reabierto por el jefe para corregir',c:'Enviado hoy y todavía sin aprobar'});logA('Parte reabierto para corregir',p.id,'Enviado hoy y todavía sin aprobar','','parte');
     toast(`${p.id} volvió a edición. Cuando termines, envialo de nuevo.`);S.sel=p.id;S.back='o-day';S.step=3;go('o-edit')},
-  'o-open':d=>{S.sel=d.id;S.back='o-day';const p=byId(d.id);S.step=0;if(p.estado==='obs'){const c=errs(p)[0];if(c)S.step=STEP_OF[c[2]]}go('o-edit')},
+  'o-open':d=>{S.sel=d.id;S.back='o-day';UI.ddo={};const p=byId(d.id);S.step=0;if(p.estado==='obs'){const c=errs(p)[0];if(c)S.step=STEP_OF[c[2]]}go('o-edit')},
   'o-step':d=>{S.step=Number(d.i);render()},
   'o-check':d=>{const e=cur().ejec;e.check[d.k]=!e.check[d.k];render()},
   'o-ptnow':()=>{const p=cur(),e=p.ejec;e.permiso=e.permiso||{num:'',firmo:'',hora:''};UI.ptPrev={id:p.id,v:JSON.stringify(e.permiso)};e.permiso.hora=hm5();if(!e.permiso.firmo)e.permiso.firmo=OPSUP[p.op];toast(`Permiso marcado como firmado a las ${e.permiso.hora}. Si fue sin querer, tocá Deshacer firma.`);render()},
@@ -173,8 +173,14 @@ const A={
   'o-addr':d=>{const p=cur(),r=p.ejec.reg;const lastA=r.reduce((m,x)=>mins(x.a)>mins(m)?x.a:m,r.length?r[0].a:null);const de=lastA||(d.c==='tr'?'06:45':p.ejec.llegada||'07:30');
     const it={c:d.c,de,a:addM(de,d.c==='rf'?30:60),d:d.d||'',q:'',u:d.c==='vi'?'km/h':'',det:''};if(d.d)it.u=unitOf(p.ct,d.d);r.push(it);render();
     const tb=document.querySelector('.edbody [data-keep="t"]');if(tb)tb.scrollTop=tb.scrollHeight;
-    if((d.c==='op'&&!d.d)||d.c==='es'||d.c==='vi')setTimeout(()=>{const el=document.getElementById((d.c==='vi'?'f-rq':'f-rd')+(r.length-1));if(el)el.focus()},20)},
-  'o-delr':d=>{cur().ejec.reg.splice(Number(d.i),1);render()},
+    const k=r.length-1;
+    if(d.c==='op'&&d.d===''){UI.ddo['e:reg.'+k+'.d']=true;render()}   // "Otra tarea" prevista: directo a escribirla
+    if((d.c==='op'&&!d.d)||d.c==='es'||d.c==='vi')setTimeout(()=>{const el=document.getElementById((d.c==='vi'?'f-rq':'f-rd')+k);if(!el)return;if(el.classList.contains('ddb'))el.click();else el.focus()},20)},
+  'o-delr':d=>{cur().ejec.reg.splice(Number(d.i),1);UI.ddo={};render()},
+  /* desplegable propio (dd): elegir, pasar a escribir un valor libre y volver a la lista */
+  'dd-pick':d=>{setBind(d.b,d.v);delete UI.ddo[d.b];render()},
+  'dd-otra':d=>{UI.ddo[d.b]=true;setBind(d.b,'');render();setTimeout(()=>{const t=document.getElementById(d.f);if(t)t.focus()},30)},
+  'dd-list':d=>{delete UI.ddo[d.b];setBind(d.b,'');render();setTimeout(()=>{const t=document.getElementById(d.f);if(t)t.click()},30)},
   'o-delf':d=>{const f=cur().ejec.fotos.splice(Number(d.i),1)[0];if(f&&f.id){mediaDel(f.id);if(MEDIA.url[f.id]){URL.revokeObjectURL(MEDIA.url[f.id]);delete MEDIA.url[f.id]}}render()},
   'o-sigclear':()=>{cur().ejec.firma=null;render()},
   'o-fin':d=>{const p=cur();p.fin=d.v;if(d.v==='ext'&&!p.ext)p.ext={dias:1,motivo:''};render()},

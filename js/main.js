@@ -3,7 +3,7 @@ const scr=$('#screen');
 let SCALE=1,drag=null,CB=null;
 
 /* La app se diseña a 800 px de alto (y al menos 1180 de ancho) y se escala para llenar la pantalla:
-   en la tablet de 11" horizontal cada pantalla entra entera, sin scroll de página. */
+   en la tablet del operador (10,1", 1280×800 horizontal) cada pantalla entra entera, sin scroll de página. */
 function fit(){
   const app=$('#app'),W0=app.clientWidth||innerWidth,H0=app.clientHeight||innerHeight;
   let s=Math.min(H0/DH,W0/MINW);s=Math.max(.5,Math.min(1.5,s));SCALE=s;
@@ -32,17 +32,19 @@ function initSigs(){
   });
 }
 
-/* ---------- desplegable con búsqueda (cbx) ---------- */
+/* ---------- desplegables propios: con búsqueda (cbx) y para elegir un valor (dd) ---------- */
 function cbOpen(wrap){
   cbClose();
-  const inp=wrap.querySelector('input'),tpl=wrap.querySelector('template');if(!inp||!tpl)return;
+  const dd=wrap.classList.contains('dd'),inp=wrap.querySelector(dd?'.ddb':'input'),tpl=wrap.querySelector('template');if(!inp||!tpl)return;
   const pop=document.createElement('div');pop.className='cbx-pop';pop.id='cbx-pop';pop.setAttribute('role','listbox');
   pop.appendChild(tpl.content.cloneNode(true));
   pop.addEventListener('mousedown',e=>e.preventDefault());
   scr.appendChild(pop);
-  CB={wrap,inp,pop,act:-1};
+  CB={wrap,inp,pop,act:-1,dd};
   inp.setAttribute('aria-expanded','true');inp.setAttribute('aria-controls','cbx-pop');
-  cbPlace();cbFilter();
+  cbPlace();
+  if(dd){const o=[...pop.querySelectorAll('.cbx-o')];CB.act=o.findIndex(b=>b.classList.contains('sel'));cbHi();inp.focus({preventScroll:true})}
+  else cbFilter();
 }
 function cbPlace(){
   if(!CB)return;const s=SCALE,r=CB.inp.getBoundingClientRect(),sr=scr.getBoundingClientRect();
@@ -65,18 +67,24 @@ function cbClose(){if(!CB)return;CB.pop.remove();if(CB.inp.isConnected)CB.inp.se
 scr.addEventListener('focusin',e=>{const w=e.target.closest&&e.target.closest('.cbx');if(w&&e.target.tagName==='INPUT'&&(!CB||CB.wrap!==w||!CB.pop.isConnected))cbOpen(w)});
 scr.addEventListener('focusout',e=>{if(CB&&e.target===CB.inp)setTimeout(()=>{if(CB&&document.activeElement!==CB.inp)cbClose()},150)});
 scr.addEventListener('scroll',e=>{if(CB&&e.target!==CB.pop)cbPlace()},true);
+/* dd: se abre con un toque (o con las flechas) y se cierra al tocar afuera */
+document.addEventListener('pointerdown',e=>{if(CB&&!CB.pop.contains(e.target)&&!CB.wrap.contains(e.target))cbClose()},true);
 scr.addEventListener('keydown',e=>{
-  if(!CB||e.target!==CB.inp)return;
+  if(!CB){const b=e.target.closest&&e.target.closest('.ddb');if(b&&(e.key==='ArrowDown'||e.key==='ArrowUp')){e.preventDefault();cbOpen(b.parentElement)}return}
+  if(e.target!==CB.inp)return;
   const vis=[...CB.pop.querySelectorAll('.cbx-o:not([hidden])')];
   if(e.key==='ArrowDown'){e.preventDefault();CB.act=Math.min(vis.length-1,CB.act+1);cbHi()}
   else if(e.key==='ArrowUp'){e.preventDefault();CB.act=Math.max(0,CB.act-1);cbHi()}
   else if(e.key==='Enter'){e.preventDefault();const b=vis[CB.act]||(vis.length===1?vis[0]:null);if(b)b.click()}
-  else if(e.key==='Escape'){e.preventDefault();CB.inp.value='';const i=CB.inp;cbClose();i.blur()}
+  else if(e.key==='Escape'){e.preventDefault();const i=CB.inp,dd=CB.dd;if(!dd)i.value='';cbClose();if(dd)i.focus();else i.blur()}
+  else if(e.key==='Tab')cbClose();
 });
 
 /* ---------- clics, cambios y envíos ---------- */
 scr.addEventListener('click',ev=>{
   if(Date.now()<noClick){ev.preventDefault();return}
+  const ddb=ev.target.closest('.ddb');
+  if(ddb){ev.preventDefault();if(CB&&CB.inp===ddb)cbClose();else cbOpen(ddb.parentElement);return}
   const t=ev.target.closest('[data-a]');
   if(UI.reqs&&!ev.target.closest('.popw')){UI.reqs=false;if(!t){render();return}}
   if(t&&!t.disabled&&scr.contains(t)){ev.preventDefault();const f=A[t.dataset.a];if(f){cbClose();f(t.dataset)}}
