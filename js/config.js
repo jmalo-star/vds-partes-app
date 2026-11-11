@@ -4,7 +4,7 @@
    el ámbito global: config → util → data → import → state → ui
    → vistas → modals → export → actions → main.
    ============================================================ */
-const APP_VERSION='0.10.0';
+const APP_VERSION='0.10.1';
 const KEY='vds-partes-proto-7';          // estado guardado en el dispositivo (localStorage)
 const THEME_KEY='vds-theme';             // preferencia de modo diurno / nocturno
 const EVAL=true;                         // versión de evaluación: usuarios de prueba y datos locales

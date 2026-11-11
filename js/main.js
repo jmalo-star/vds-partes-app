@@ -125,7 +125,7 @@ scr.addEventListener('input',ev=>{
   const b=ev.target.dataset&&ev.target.dataset.bind;if(b&&!('rr' in ev.target.dataset&&ev.target.type==='search')){clampNum(ev.target);setBind(b,ev.target.value);save()}
 });
 scr.addEventListener('change',ev=>{
-  if(ev.target.id==='f-import'){onImport(ev.target);return}
+  if(ev.target.id==='f-import'||ev.target.id==='f-import2'){onImport(ev.target);return}
   if(ev.target.type==='file'){onFiles(ev.target);return}
   if(ev.target.closest&&ev.target.closest('.cbx'))return;
   if(ev.target.dataset&&ev.target.dataset.tbind){

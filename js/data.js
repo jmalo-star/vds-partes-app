@@ -182,7 +182,8 @@ function exampleSeed(){
   const T=[],P=[];let n=200,pi=0;const pool=ALLP.slice();
   const pk=(a,i)=>a&&a.length?a[i%a.length]:'';
   RECURSOS.forEach((r,ri)=>{
-    const ct=Object.keys(CTS).sort(natCmp).find(k=>CTS[k].recs.includes(r.id));if(!ct)return;const c=CTS[ct];
+    // el contrato más específico de la cuadrilla: uno sin cuadrillas propias las habilita a todas y no debe ganar
+    const ct=Object.keys(CTS).filter(k=>CTS[k].recs.includes(r.id)).sort((a,b)=>CTS[a].recs.length-CTS[b].recs.length||natCmp(a,b))[0];if(!ct)return;const c=CTS[ct];
     let pers=(CREW[r.id]||[]).slice();if(!pers.length)for(let k=0;k<2&&pool.length;k++){pers.push(pool[pi%pool.length]);pi++}
     if(!pers.length)return;
     const eqs=((VEH[r.id]||[]).length?VEH[r.id]:c.eqs).slice(0,4);

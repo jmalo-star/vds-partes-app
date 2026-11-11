@@ -134,6 +134,9 @@ function shell(){
   </aside><section class="main">${topbar()}${view()}${UI.drawer?drawer():''}</section>`;
 }
 function netChip(){const off=offline();return `<button class="sync${off?' off':''}" data-a="sync" title="${EVAL?'Tocá para simular que no hay señal':''}">${ic(off?'nowifi':'wifi')}${off?'Sin señal · guarda en la tablet':'En línea'}</button>`}
+/* Aviso de datos de ejemplo: los reales no están en el sitio público, se importan en cada dispositivo */
+function demoChip(){if(!S.cat||S.cat.src!=='demo')return '';const tt='Estás viendo datos de ejemplo. Los contratos, tareas, cuadrillas y ubicaciones reales se cargan en cada dispositivo importando el archivo maestros-vds.json.';
+  return isAdm()&&S.route!=='a-conf'?`<label class="btn demo" data-ttl="${tt}">${ic('alert')}Datos de ejemplo · Cargar los reales<input type="file" id="f-import2" accept=".json,.xlsx,.xls" class="hidin"></label>`:`<span class="flag warn demo" data-ttl="${tt}">${ic('alert')}Datos de ejemplo</span>`}
 function topbar(){
   const R=S.route;let t='',s='',right='';
   const date=`<span class="datechip">${ic('cal')}${fDay(TODAY)} ${TODAY.slice(0,4)}</span>`;
@@ -149,7 +152,7 @@ function topbar(){
   else if(R==='c-dash'){t='Dashboard del servicio';s=(isAdm()?OPS[S.dop]:OPS[meU().op])+' · datos de partes aprobados';right=date}
   else if(R==='a-conf'){t='Configuración';s='Datos maestros, contratos, cuadrillas, usuarios y permisos';right=date}
   else if(R==='a-log'){t='Registro de actividad';s='Ingresos y cambios en partes, trabajos y configuración';right=date}
-  return `<header class="top"><div class="ttl"><h1>${t}</h1><div class="sub">${esc(s)}</div></div><span class="sp"></span><div class="tr">${right}</div></header>`;
+  return `<header class="top"><div class="ttl"><h1>${t}</h1><div class="sub">${esc(s)}</div></div><span class="sp"></span><div class="tr">${demoChip()}${right}</div></header>`;
 }
 function view(){
   switch(S.route){
