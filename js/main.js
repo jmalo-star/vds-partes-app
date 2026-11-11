@@ -3,12 +3,18 @@ const scr=$('#screen');
 let SCALE=1,drag=null,CB=null;
 
 /* La app se diseña a 800 px de alto (y al menos 1180 de ancho) y se escala para llenar la pantalla:
-   en la tablet del operador (10,1", 1280×800 horizontal) cada pantalla entra entera, sin scroll de página. */
+   en la tablet del operador (10,1", 1280×800 horizontal) cada pantalla entra entera, sin scroll de página.
+   Teclado en pantalla: si solo baja el alto mientras se escribe, no se reescala ni se cierra la lista abierta:
+   la pantalla se corre hacia arriba lo justo para que el campo quede a la vista. */
+let FIT={w:0,h:0,dy:0};
 function fit(){
-  const app=$('#app'),W0=app.clientWidth||innerWidth,H0=app.clientHeight||innerHeight;
+  const app=$('#app'),W0=app.clientWidth||innerWidth,H0=app.clientHeight||innerHeight,st=$('#stage'),ae=document.activeElement;
+  const typing=ae&&/^(INPUT|TEXTAREA)$/.test(ae.tagName)&&ae.inputMode!=='none'&&scr.contains(ae);
+  if(typing&&W0===FIT.w&&H0<FIT.h){const r=ae.getBoundingClientRect();FIT.dy=Math.max(0,r.bottom+FIT.dy-H0+12);st.style.transform=`translateY(${-FIT.dy}px) scale(${SCALE})`;cbPlace();return}
+  const same=W0===FIT.w&&H0===FIT.h;FIT={w:W0,h:H0,dy:0};
   let s=Math.min(H0/DH,W0/MINW);s=Math.max(.5,Math.min(1.5,s));SCALE=s;
-  const st=$('#stage');st.style.width=(W0/s)+'px';st.style.height=(H0/s)+'px';st.style.transform=`scale(${s})`;
-  cbClose();
+  st.style.width=(W0/s)+'px';st.style.height=(H0/s)+'px';st.style.transform=`scale(${s})`;
+  if(same)cbPlace();else cbClose();
 }
 
 /* ---------- firmas ---------- */
@@ -39,6 +45,7 @@ function cbOpen(wrap){
   const pop=document.createElement('div');pop.className='cbx-pop';pop.id='cbx-pop';pop.setAttribute('role','listbox');
   pop.appendChild(tpl.content.cloneNode(true));
   pop.addEventListener('mousedown',e=>e.preventDefault());
+  if(!dd&&inp.inputMode==='none'){const k=document.createElement('button');k.type='button';k.className='cbx-kb';k.innerHTML=ic('search')+'Escribir para buscar';pop.prepend(k)}
   scr.appendChild(pop);
   CB={wrap,inp,pop,act:-1,dd};
   inp.setAttribute('aria-expanded','true');inp.setAttribute('aria-controls','cbx-pop');
@@ -47,9 +54,11 @@ function cbOpen(wrap){
   else cbFilter();
 }
 function cbPlace(){
-  if(!CB)return;const s=SCALE,r=CB.inp.getBoundingClientRect(),sr=scr.getBoundingClientRect();
+  if(!CB)return;const s=SCALE,r=CB.inp.getBoundingClientRect(),sr=scr.getBoundingClientRect(),vv=window.visualViewport;
   const W=sr.width/s,H=sr.height/s,top=(r.top-sr.top)/s,bot=(r.bottom-sr.top)/s,w=Math.max(r.width/s,320);
-  const left=Math.max(8,Math.min((r.left-sr.left)/s,W-w-8)),below=H-bot-12,above=top-12;
+  // solo la parte visible: con el teclado abierto es más chica y la lista tiene que entrar ahí
+  const vt=Math.max(0,((vv?vv.offsetTop:0)-sr.top)/s),vb=Math.min(H,((vv?vv.offsetTop+vv.height:innerHeight)-sr.top)/s);
+  const left=Math.max(8,Math.min((r.left-sr.left)/s,W-w-8)),below=vb-bot-12,above=top-vt-12;
   Object.assign(CB.pop.style,{left:left+'px',width:w+'px',top:'',bottom:''});
   if(below>=240||below>=above){CB.pop.style.top=(bot+4)+'px';CB.pop.style.maxHeight=Math.min(340,below)+'px'}
   else{CB.pop.style.bottom=(H-top+4)+'px';CB.pop.style.maxHeight=Math.min(340,above)+'px'}
@@ -63,12 +72,20 @@ function cbFilter(){
   CB.act=q&&n?0:-1;cbHi();
 }
 function cbHi(){if(!CB)return;const vis=[...CB.pop.querySelectorAll('.cbx-o:not([hidden])')];vis.forEach((b,i)=>b.classList.toggle('act',i===CB.act));if(vis[CB.act])vis[CB.act].scrollIntoView({block:'nearest'})}
-function cbClose(){if(!CB)return;CB.pop.remove();if(CB.inp.isConnected)CB.inp.setAttribute('aria-expanded','false');CB=null}
+function cbClose(){if(!CB)return;CB.pop.remove();if(CB.inp.isConnected){CB.inp.setAttribute('aria-expanded','false');if(!CB.dd)CB.inp.inputMode=''}CB=null}
+/* Tablet: el primer toque abre la lista sin teclado (casi siempre alcanza con elegir). Para buscar escribiendo:
+   "Escribir para buscar" arriba de la lista, o tocar de nuevo el campo. */
+function cbKb(){if(!CB||CB.dd)return;const i=CB.inp,k=CB.pop.querySelector('.cbx-kb');if(k)k.remove();i.inputMode='text';i.blur();i.focus()}
+if(window.visualViewport){visualViewport.addEventListener('resize',()=>{if(CB)cbPlace()});visualViewport.addEventListener('scroll',()=>{if(CB)cbPlace()})}
 scr.addEventListener('focusin',e=>{const w=e.target.closest&&e.target.closest('.cbx');if(w&&e.target.tagName==='INPUT'&&(!CB||CB.wrap!==w||!CB.pop.isConnected))cbOpen(w)});
 scr.addEventListener('focusout',e=>{if(CB&&e.target===CB.inp)setTimeout(()=>{if(CB&&document.activeElement!==CB.inp)cbClose()},150)});
 scr.addEventListener('scroll',e=>{if(CB&&e.target!==CB.pop)cbPlace()},true);
-/* dd: se abre con un toque (o con las flechas) y se cierra al tocar afuera */
-document.addEventListener('pointerdown',e=>{if(CB&&!CB.pop.contains(e.target)&&!CB.wrap.contains(e.target))cbClose()},true);
+/* Las listas se cierran al tocar afuera. En la tablet, el campo de búsqueda arranca sin teclado (ver cbKb) */
+document.addEventListener('pointerdown',e=>{
+  if(CB&&!CB.pop.contains(e.target)&&!CB.wrap.contains(e.target))cbClose();
+  const inp=(e.pointerType==='touch'||e.pointerType==='pen')&&e.target.closest&&e.target.closest('.cbx input');
+  if(inp){const was=document.activeElement===inp;inp.dataset.was=was?'1':'';if(!was)inp.inputMode='none'}
+},true);
 scr.addEventListener('keydown',e=>{
   if(!CB){const b=e.target.closest&&e.target.closest('.ddb');if(b&&(e.key==='ArrowDown'||e.key==='ArrowUp')){e.preventDefault();cbOpen(b.parentElement)}return}
   if(e.target!==CB.inp)return;
@@ -83,6 +100,9 @@ scr.addEventListener('keydown',e=>{
 /* ---------- clics, cambios y envíos ---------- */
 scr.addEventListener('click',ev=>{
   if(Date.now()<noClick){ev.preventDefault();return}
+  if(ev.target.closest('.cbx-kb')){ev.preventDefault();cbKb();return}
+  const ci=ev.target.closest('.cbx input');
+  if(ci&&ci.dataset.was==='1'&&ci.inputMode==='none'){ci.dataset.was='';if(CB&&CB.inp===ci)cbKb();else{cbOpen(ci.closest('.cbx'))}return}
   const ddb=ev.target.closest('.ddb');
   if(ddb){ev.preventDefault();if(CB&&CB.inp===ddb)cbClose();else cbOpen(ddb.parentElement);return}
   const t=ev.target.closest('[data-a]');
