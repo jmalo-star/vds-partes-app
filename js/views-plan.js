@@ -10,7 +10,7 @@ function periodLabel(){
   const[y,m]=S.ms.split('-').map(Number);return MESL[m-1][0].toUpperCase()+MESL[m-1].slice(1)+' '+y;
 }
 function vPlan(){
-  const L=fT(),days=periodDays(),oa=occAll(days,L);
+  const L=fT(),RR=fRecs(L),days=periodDays(),oa=occAll(days,L,RR);
   const ps=S.partes.filter(p=>(S.fop==='all'||p.op===S.fop)&&(S.fct==='all'||p.ct===S.fct));
   const filt=S.fop!=='all'||S.fct!=='all',rq=L.filter(t=>t.ext);
   const reqs=rq.length?`<div class="popw"><button class="btn sm2 warnb" data-a="reqs" aria-expanded="${!!UI.reqs}">${ic('flag')}Pedidos de más días<span class="cnt">${rq.length}</span></button>${UI.reqs?`<div class="popp" role="dialog" aria-label="Pedidos de los jefes de cuadrilla"><div class="poph"><b>Pedidos de los jefes de cuadrilla</b><button class="ibtn xs" data-a="reqs" aria-label="Cerrar">${ic('x')}</button></div>${rq.map(t=>{const sim=Object.assign({},t,{dias:t.dias+t.ext.dias});const cl=clashes(sim);
@@ -20,19 +20,19 @@ function vPlan(){
   h+=`<div class="bar"><div class="pnav"><button class="ibtn" data-a="p-nav" data-d="-1" aria-label="Período anterior">${ic('chl')}</button><b>${periodLabel()}</b><button class="ibtn" data-a="p-nav" data-d="1" aria-label="Período siguiente">${ic('chr')}</button></div><button class="btn sm2" data-a="p-nav" data-d="0">Hoy</button>
     <div class="kchips">${kchip(oa+'%','ocupación',occC(oa))}${kchip(ps.filter(p=>p.estado==='curso').length,'en curso','var(--st-curso)')}${kchip(ps.filter(p=>p.estado==='env').length,'para aprobar','var(--st-env)')}${kchip(ps.filter(p=>p.estado==='apr').length,'para certificar','var(--st-apr)')}${kchip(ps.filter(p=>p.estado==='obs').length,'observados','var(--st-obs)')}</div>
     <span class="sp"></span><span class="sm hint">${S.pv==='gantt'?'Arrastrá una barra para moverla o su borde para estirarla':'Arrastrá un trabajo a otro día para moverlo · + para planificar'}</span></div>`;
-  h+=S.pv==='gantt'?vGantt(L):S.pv==='rec'?vWeek(L):vMonth(L);
+  h+=S.pv==='gantt'?vGantt(L,RR):S.pv==='rec'?vWeek(L,RR):vMonth(L);
   h+=`<div class="legend">${['plan','curso','env','obs','apr','cert'].map(e=>pill(e)).join('')}<span class="sp"></span><span>Prioridad</span>${Object.entries(PRIO).map(([k2,l])=>`<span class="lg"><span class="gpr" style="--pc:${PRIO_C[k2]}"></span>${l}</span>`).join('')}</div>`;
   return h;
 }
 const ordB=t=>t.orden||t.hora?`<span class="ordb">${t.orden?ORDS[t.orden][1]:''}${t.orden&&t.hora?' · ':''}${t.hora||''}</span>`:'';
 function lanes(ts){const L=[];ts.slice().sort((a,b)=>a.inicio.localeCompare(b.inicio)||byOrd(a,b)).forEach(t=>{let i=L.findIndex(end=>end<t.inicio);if(i<0){i=L.length;L.push('')}L[i]=t.ext?addDays(tEnd(t),t.ext.dias):tEnd(t);t._lane=i});return Math.max(1,L.length)}
 const GL=36;   // alto de cada carril del Gantt
-function vGantt(L){
+function vGantt(L,RR=RECURSOS){
   const N=28,days=periodDays(),start=S.gs,end=days[N-1];
   const pct=f=>diffD(start,f)/N*100;
   const we=days.map((f,i)=>{const w=d8(f).getDay();return w===6?`<div class="gwe" style="left:${i/N*100}%;width:${200/N}%"></div>`:w===0&&i===0?`<div class="gwe" style="left:0;width:${100/N}%"></div>`:''}).join('');
   const now=TODAY>=start&&TODAY<=end?`<div class="gnow" style="left:calc(${pct(TODAY)}% + ${100/N/2}%)"></div>`:'';
-  const rows=RECURSOS.map(r=>{
+  const rows=RR.map(r=>{
     const ts=L.filter(t=>t.rec===r.id&&t.inicio<=end&&tEnd(t)>=start);
     const nl=lanes(ts),o=occRec(r.id,days,L);
     const bars=ts.map(t=>{const st=tState(t),cl=clashes(t).length,lk=started(t);
@@ -43,15 +43,16 @@ function vGantt(L){
         <span class="gh l" data-h="l"></span>${t.cierre?`<span class="ck">${ic('okc')}</span>`:`<span class="gpr" style="--pc:${PRIO_C[t.prio]}"></span>`}<span class="gl"><span class="mono">${t.id}</span> ${ordB(t)}${esc(t.pozo)} · ${t.dias} d${t.ptw?' · PT':''}</span><span class="gd">${ds}</span><span class="gh r" data-h="r"></span></div>${ext}`}).join('');
     return `<div class="grow"><div class="glab"><b title="${esc(r.n)}">${esc(r.n)}</b><small>${esc(jefeOf(r.id))}</small><div class="occ" style="--c:${occC(o)}"><i><em style="width:${o}%"></em></i><b>${o}%</b></div></div><div class="gtrack" style="min-height:${14+nl*GL}px">${we}${now}${bars}</div></div>`}).join('');
   return `<div class="gantt fill"><div class="grow ghd"><div class="gmonth">Recurso · ocupación</div><div class="ghead">${days.map(f=>{const d=d8(f),w=d.getDay();return `<span class="${w===0||w===6?'we':''}${f===TODAY?' td':''}">${'DLMMJVS'[w]}<b>${d.getDate()}</b></span>`}).join('')}</div></div>
-    <div class="gbody" data-keep="g">${rows||'<div class="empty" style="margin:14px">No hay cuadrillas cargadas.</div>'}</div>
-    <div class="grow gfoot"><div class="glab"><b>Ocupación diaria</b><small>Recursos ocupados / ${RECURSOS.length}</small></div><div class="gocc">${days.map(f=>{const o=occDay(f,L);return `<span title="${fDay(f)}: ${o}%" style="--c:${occC(o)}"><i style="height:${Math.max(o,3)*0.22}px"></i>${o}</span>`}).join('')}</div></div></div>`;
+    <div class="gbody" data-keep="g">${rows||`<div class="empty" style="margin:14px">${RECURSOS.length?'No hay cuadrillas ni trabajos para este filtro.':'No hay cuadrillas cargadas.'}</div>`}</div>
+    <div class="grow gfoot"><div class="glab"><b>Ocupación diaria</b><small>Recursos ocupados / ${RR.length}</small></div><div class="gocc">${days.map(f=>{const o=occDay(f,L,RR);return `<span title="${fDay(f)}: ${o}%" style="--c:${occC(o)}"><i style="height:${Math.max(o,3)*0.22}px"></i>${o}</span>`}).join('')}</div></div></div>`;
 }
-function vWeek(L){
+function vWeek(L,RR=RECURSOS){
   const days=periodDays();
-  let h=`<div class="board fill" role="grid" aria-label="Calendario por recurso" data-keep="w" style="grid-template-rows:auto repeat(${RECURSOS.length},minmax(76px,1fr))"><div class="bh">Recurso</div>`;
-  days.forEach(f=>{const x=d8(f),o=occDay(f,L);h+=`<div class="bh${f===TODAY?' today':''}">${DIAS[x.getDay()]}${f===TODAY?' · hoy':''}<b>${x.getDate()}</b><span class="oc"><span class="gpr" style="--pc:${occC(o)}"></span>${o}%</span></div>`});
-  RECURSOS.forEach((r,ri)=>{
-    const last=ri===RECURSOS.length-1?' lastrow':'',o=occRec(r.id,days,L);
+  if(!RR.length)return `<div class="board fill"><div class="empty" style="margin:14px">No hay cuadrillas ni trabajos para este filtro.</div></div>`;
+  let h=`<div class="board fill" role="grid" aria-label="Calendario por recurso" data-keep="w" style="grid-template-rows:auto repeat(${RR.length},minmax(76px,1fr))"><div class="bh">Recurso</div>`;
+  days.forEach(f=>{const x=d8(f),o=occDay(f,L,RR);h+=`<div class="bh${f===TODAY?' today':''}">${DIAS[x.getDay()]}${f===TODAY?' · hoy':''}<b>${x.getDate()}</b><span class="oc"><span class="gpr" style="--pc:${occC(o)}"></span>${o}%</span></div>`});
+  RR.forEach((r,ri)=>{
+    const last=ri===RR.length-1?' lastrow':'',o=occRec(r.id,days,L);
     h+=`<div class="rh${last}"><b>${esc(r.n)}</b><small>${esc(jefeOf(r.id))}</small><div class="occ" style="--c:${occC(o)}"><i><em style="width:${o}%"></em></i><b>${o}%</b></div></div>`;
     days.forEach(f=>{
       const ts=L.filter(t=>t.rec===r.id&&covers(t,f)).sort(byOrd);

@@ -114,8 +114,13 @@ const ordTxt=t=>[t.orden?ORDS[t.orden][1]+' del día':'',t.hora?'inicio '+t.hora
 const fT=()=>S.trabajos.filter(t=>(S.fop==='all'||CT(t.ct).op===S.fop)&&(S.fct==='all'||t.ct===S.fct));
 const busy=(rec,f,L)=>(L||S.trabajos).some(t=>t.rec===rec&&covers(t,f));
 const occRec=(rec,days,L)=>Math.round(days.filter(f=>busy(rec,f,L)).length/days.length*100);
-const occDay=(f,L)=>Math.round(RECURSOS.filter(r=>busy(r.id,f,L)).length/Math.max(1,RECURSOS.length)*100);
-const occAll=(days,L)=>Math.round(RECURSOS.reduce((s,r)=>s+days.filter(f=>busy(r.id,f,L)).length,0)/Math.max(1,RECURSOS.length*days.length)*100);
+const occDay=(f,L,R=RECURSOS)=>Math.round(R.filter(r=>busy(r.id,f,L)).length/Math.max(1,R.length)*100);
+const occAll=(days,L,R=RECURSOS)=>Math.round(R.reduce((s,r)=>s+days.filter(f=>busy(r.id,f,L)).length,0)/Math.max(1,R.length*days.length)*100);
+/* Cuadrillas (filas) de la planificación según el filtro de cliente/contrato: las habilitadas en esos contratos
+   y las que tienen trabajos filtrados. Un contrato que habilita todas (porque no tiene cuadrillas propias) no suma filas. */
+const fRecs=L=>{if(S.fop==='all'&&S.fct==='all')return RECURSOS;const ids=new Set(L.map(t=>t.rec));
+  Object.entries(S.contratos).forEach(([k,c])=>{const r=c.recs||[];if((S.fop==='all'||c.op===S.fop)&&(S.fct==='all'||k===S.fct)&&r.length<RECURSOS.length)r.forEach(x=>ids.add(x))});
+  return RECURSOS.filter(r=>ids.has(r.id))};
 const occC=p=>p>=90?'var(--accent)':p>=50?'var(--st-ok)':p>0?'var(--st-curso)':'var(--faint)';
 const nextPD=()=>'PD-'+String(Math.max(0,...S.partes.map(p=>Number(p.id.slice(3))))+1).padStart(4,'0');
 /* Contratos ordenados por cliente y número (los números puramente numéricos no quedan primero) */
