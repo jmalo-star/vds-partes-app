@@ -283,8 +283,9 @@ function onFiles(inp){
     toast(ok?`${ok} foto${ok>1?'s':''} agregada${ok>1?'s':''} al parte${bad?` · ${bad} no se pudo leer`:''}`:'No se pudo agregar la foto: el formato no es compatible o no hay espacio en el dispositivo');render()})();
 }
 async function onImport(inp){const file=inp.files&&inp.files[0];if(!file)return;
-  if(/\.csv$/i.test(file.name)){try{const l=fromNovCsv(await file.text());if(!l.length)throw new Error('no trae códigos');S.cat.novedades=l;const nl=l.filter(x=>x.t==='liq').length;
-      logA('Novedades importadas',file.name,`${l.length} siglas · ${nl} de liquidación · ${l.length-nl} de ausencia`,'','config');toast(`${l.length} novedades importadas · ${nl} de liquidación y ${l.length-nl} de ausencia`)}
+  if(/\.csv$/i.test(file.name)){try{const W=[],l=fromNovCsv(await file.text(),W);if(!l.length)throw new Error('no trae códigos');S.cat.novedades=l;const nl=l.filter(x=>x.t==='liq').length,sinId=l.filter(x=>!x.id).length;
+      const extra=[sinId?`${sinId} sin id de sueldos`:'',W.length?`${W.length} repetida${W.length>1?'s':''}: quedó una de cada una (detalle en el registro)`:''].filter(Boolean);
+      logA('Novedades importadas',file.name,[`${l.length} siglas · ${nl} de liquidación · ${l.length-nl} de ausencia`,...W.map(w=>w[1])].join(' · '),'','config');toast([`${l.length} novedades importadas · ${nl} de liquidación y ${l.length-nl} de ausencia`,...extra].join(' · '))}
     catch(e){toast('No se pudo leer el CSV de novedades: '+(e&&e.message?e.message:'formato no reconocido'))}inp.value='';render();return}
   try{let res;if(/\.json$/i.test(file.name))res=fromJson(JSON.parse(await file.text()),file.name);
     else{await loadLib('xlsx');res=fromXlsx(XLSX.read(await file.arrayBuffer(),{cellDates:true}),file.name)}

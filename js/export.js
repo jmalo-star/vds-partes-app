@@ -117,20 +117,20 @@ async function exportDash(){
 }
 async function exportNov(list){
   try{await loadLib('xlsx')}catch(e){toast('No se pudo cargar el generador de Excel: '+e.message);render();return}
-  const rows=[];list.slice().sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.id.localeCompare(b.id)).forEach(p=>Object.entries(p.nov||{}).forEach(([n,cs])=>cs.forEach(c=>{const t=(novCat().find(x=>x.c===c)||{}).t;rows.push([p.id,xd(p.fecha),EST[p.estado],OPS[p.op],p.ct,p.imp,recOf(p.rec).n,n,c,NOVT[t]||'',1,novHasV(c)?novV(c):'',novV(c)])})));
+  const rows=[];list.slice().sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.id.localeCompare(b.id)).forEach(p=>Object.entries(p.nov||{}).forEach(([n,cs])=>cs.forEach(c=>{const t=(novCat().find(x=>x.c===c)||{}).t;rows.push([p.id,xd(p.fecha),EST[p.estado],OPS[p.op],p.ct,p.imp,recOf(p.rec).n,n,novId(c),c,NOVT[t]||'',1,novHasV(c)?novV(c):'',novV(c)])})));
   if(!rows.length){toast('Ningún parte de la lista tiene novedades cargadas');render();return}
   logA('Exportación de novedades','',`${rows.length} novedades de ${new Set(rows.map(r=>r[0])).size} partes`,'','export');
-  saveBlob(xlsxBlob([['Novedades',[['Nº parte','Fecha','Estado','Cliente','Contrato','Imputación','Recurso','Persona','Novedad','Tipo','Cantidad','Valor','Monto'],...rows],[10,11,14,18,14,22,16,24,18,12,9,11,11]]]),`VDS_novedades_${TODAY}.xlsx`,`Novedades exportadas · ${rows.length}`);
+  saveBlob(xlsxBlob([['Novedades',[['Nº parte','Fecha','Estado','Cliente','Contrato','Imputación','Recurso','Persona','Id sueldos','Novedad','Tipo','Cantidad','Valor','Monto'],...rows],[10,11,14,18,14,22,16,24,10,18,12,9,11,11]]]),`VDS_novedades_${TODAY}.xlsx`,`Novedades exportadas · ${rows.length}`);
 }
 async function exportNls(){
   try{await loadLib('xlsx')}catch(e){toast('No se pudo cargar el generador de Excel: '+e.message);render();return}
   const rows=nlRows();if(!rows.length)return;
   const f=rows.map(r=>r.p.fecha).sort(),a=S.nfrom||f[0],b=S.nto||f[f.length-1],tot=rows.reduce((s,r)=>s+r.v,0);
-  const det=rows.slice().sort((x,y)=>x.p.fecha.localeCompare(y.p.fecha)||natCmp(x.n,y.n)).map(r=>[r.p.id,xd(r.p.fecha),EST[r.p.estado],OPS[r.p.op],r.p.ct,r.p.imp,recOf(r.p.rec).n,r.n,nlLeg(r.n),r.c,NOVT[r.t],1,novHasV(r.c)?r.v:'',r.v]);
+  const det=rows.slice().sort((x,y)=>x.p.fecha.localeCompare(y.p.fecha)||natCmp(x.n,y.n)).map(r=>[r.p.id,xd(r.p.fecha),EST[r.p.estado],OPS[r.p.op],r.p.ct,r.p.imp,recOf(r.p.rec).n,r.n,nlLeg(r.n),novId(r.c),r.c,NOVT[r.t],1,novHasV(r.c)?r.v:'',r.v]);
   const res=[['Vientos del Sur · NLS, novedades de liquidación de sueldos'],[],['Desde',xd(a)],['Hasta',xd(b)],['Cliente',S.nop==='all'?'Todos':OPS[S.nop]],['Contrato',S.nct==='all'?'Todos':S.nct],['Cuadrilla',S.nrec==='all'?'Todas':recOf(S.nrec).n],['Novedad',S.ncod==='all'?'Todas':NOVT[S.ncod]||S.ncod],['Estado del parte',S.nest==='all'?'Todos':EST[S.nest]],['Montos',S.novvEx?'De ejemplo, no son reales':'Valores cargados en la app'],[],['Monto total',tot],['Novedades',rows.length],['Empleados',new Set(rows.map(r=>r.n)).size],['Partes',new Set(rows.map(r=>r.p.id)).size]];
-  const sheets=[['Resumen',res,[24,40]],['Detalle',[['Nº parte','Fecha','Estado','Cliente','Contrato','Imputación','Cuadrilla','Empleado','Legajo','Novedad','Tipo','Cantidad','Valor','Monto'],...det],[10,11,14,18,14,22,16,24,9,18,12,9,11,11]],
+  const sheets=[['Resumen',res,[24,40]],['Detalle',[['Nº parte','Fecha','Estado','Cliente','Contrato','Imputación','Cuadrilla','Empleado','Legajo','Id sueldos','Novedad','Tipo','Cantidad','Valor','Monto'],...det],[10,11,14,18,14,22,16,24,9,10,18,12,9,11,11]],
     ['Por empleado',[['Empleado','Legajo','Cuadrilla','Partes','Cantidad','Liquidación $','Ausencia $','Monto'],...nlSum(rows,r=>r.n).map(o=>[o.k,nlLeg(o.k),homeOf(o.k),o.ps.size,o.q,o.liq,o.aus,o.v])],[26,9,16,8,9,13,12,12]],
-    ['Por novedad',[['Novedad','Tipo','Cantidad','Valor','Monto','Empleados'],...nlSum(rows,r=>r.c).map(o=>[o.k,NOVT[o.t],o.q,novHasV(o.c)?novV(o.c):'',o.v,o.ns.size])],[20,12,9,11,12,10]]];
+    ['Por novedad',[['Id sueldos','Novedad','Tipo','Cantidad','Valor','Monto','Empleados'],...nlSum(rows,r=>r.c).map(o=>[novId(o.k),o.k,NOVT[o.t],o.q,novHasV(o.c)?novV(o.c):'',o.v,o.ns.size])],[10,20,12,9,11,12,10]]];
   logA('Exportación de NLS','',`${rows.length} novedades · ${fS(a)} a ${fS(b)}`,'','export');
   saveBlob(xlsxBlob(sheets),`VDS_NLS_${a}_${b}.xlsx`,`NLS exportado · ${rows.length} novedades`);
 }

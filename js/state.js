@@ -20,7 +20,7 @@ function migrate(x){
   x.users=x.users||{};if(!x.cat.novedades)x.cat.novedades=D_NOV.map(([c,t])=>({c,t}));
   // v0.9: catálogo completo de novedades sin repetidos (las 9 de ejemplo pasan a su código real) y valores en $ por novedad
   const nv=x.cat.novedades;if(nv.length===9&&nv.some(n=>n.c==='PERNOCTE')){const eq={VIANDA:'VIANDA ADIC.',PERNOCTE:'ADIC.PERNOCT',VACACIONES:'VAC - AUS',ENFERMEDAD:'ENF - AUS',FERIADO:'FERIADO - AUS'};x.cat.novedades=D_NOV.map(([c,t])=>({c,t}));x.partes.forEach(p=>{Object.keys(p.nov||{}).forEach(n=>{p.nov[n]=p.nov[n].map(c=>eq[c]||c)})})}
-  else x.cat.novedades=novList(nv.map(n=>[n.c,n.t]));
+  else x.cat.novedades=novList(nv.map(n=>[n.c,n.t,n.id]));   // v0.10.3: conserva el id del sistema de sueldos
   if(!x.novv){x.novv=D_NOVV();x.novvEx=true}
   // v0.10: contrato con ID de VDS (la clave), nº de contrato del cliente, vigencia, responsable y servicios;
   // tareas con códigos de facturación y cantidad por defecto: [nombre, unidad, categoría de equipo, origen, códigos, cantidad]
@@ -142,6 +142,8 @@ const rolLbl=k=>UO(k)?ROLE_N[UO(k).rol]+(UO(k).rol==='planner'&&admOf(k)?' · ad
 const meN=()=>S&&UO(S.user)?UO(S.user).n:'';
 /* Novedades de liquidación cargadas en un parte (internas de la empresa) */
 const novCat=()=>(S.cat.novedades||[]);
+/* id de la novedad en el sistema de sueldos (viene del CSV); número si es numérico, para el Excel */
+const novId=c=>{const v=String((novCat().find(x=>x.c===c)||{}).id||'');return /^\d+$/.test(v)?Number(v):v};
 const novOf=(p,n)=>((p.nov||{})[n])||[];
 const novCount=p=>Object.values(p.nov||{}).reduce((a,l)=>a+l.length,0);
 const novHasV=c=>!!S.novv&&S.novv[c]!=null;

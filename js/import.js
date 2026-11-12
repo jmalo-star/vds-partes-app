@@ -22,13 +22,19 @@ function ubicList(src,cliOf,W){if(!src)return null;
   const by={};out.forEach(u=>by[u.op]=(by[u.op]||0)+1);
   W.push(['info',`Ubicaciones con coordenadas: ${out.length.toLocaleString('es-AR')} (${Object.entries(by).map(([k,v])=>`${k} ${v.toLocaleString('es-AR')}`).join(', ')}). Se buscan al planificar y se abren en Google Maps.`]);
   return out}
-/* Novedades de liquidación: [{c:código,t:'liq'|'aus'}] sin repetidos */
-const novTipo=t=>/aus/i.test(String(t||''))?'aus':'liq';
-const novList=rows=>{const out=[];rows.forEach(([c,t])=>{c=String(c||'').trim();if(!c)return;const k=novTipo(t),o=out.find(x=>x.c===c);if(!o)out.push({c,t:k});else if(o.t!==k&&/aus\b/i.test(c))o.t='aus'});return out};
+/* Novedades de liquidación: [{c:código,t:'liq'|'aus',id:id en el sistema de sueldos}] sin repetidos.
+   rows: [código, tipo, id, tabla_id]; en sueldos la tabla 10 es la de ausencias. Un código repetido queda una vez:
+   el primero, o el de ausencia si el código lo dice (LIB - AUS). Los repetidos se avisan en W. */
+const novTipo=(t,tb)=>/aus/i.test(String(t||''))||String(tb??'').trim()==='10'?'aus':'liq';
+const novList=(rows,W)=>{const out=[],rep={};rows.forEach(([c,t,id,tb])=>{c=String(c||'').trim();if(!c)return;id=String(id??'').trim();const k=novTipo(t,tb),o=out.find(x=>x.c===c);
+    if(!o){out.push({c,t:k,id});return}(rep[c]=rep[c]||[o.id]).push(id);
+    if(k==='aus'&&o.t!=='aus'&&/aus\b/i.test(c)){o.t='aus';o.id=id||o.id}else if(!o.id)o.id=id});
+  if(W)Object.entries(rep).forEach(([c,ids])=>{const o=out.find(x=>x.c===c),l=ids.filter(Boolean);W.push(['warn',`La novedad ${c} viene ${ids.length} veces${l.length?` (id ${l.join(', ')})`:''}: quedó una${o.id?`, con el id ${o.id}`:''}. Confirmá con sueldos cuál vale.`])});
+  return out};
 /* CSV de novedades exportado del sistema de sueldos: id;tabla_id;codigo;tipo */
-function fromNovCsv(txt){const L=String(txt).replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());if(!L.length)throw new Error('el archivo está vacío');
-  const sep=L[0].includes(';')?';':',',H=L[0].split(sep).map(norm),ic=H.indexOf('codigo'),it=H.indexOf('tipo');if(ic<0)throw new Error('falta la columna "codigo"');
-  return novList(L.slice(1).map(l=>{const c=l.split(sep);return [c[ic],it>=0?c[it]:'']}))}
+function fromNovCsv(txt,W){const L=String(txt).replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());if(!L.length)throw new Error('el archivo está vacío');
+  const sep=L[0].includes(';')?';':',',H=L[0].split(sep).map(norm),ic=H.indexOf('codigo'),it=H.indexOf('tipo'),ii=H.indexOf('id'),itb=H.indexOf('tabla_id');if(ic<0)throw new Error('falta la columna "codigo"');
+  return novList(L.slice(1).map(l=>{const c=l.split(sep);return [c[ic],it>=0?c[it]:'',ii>=0?c[ii]:'',itb>=0?c[itb]:'']}),W)}
 
 /* Un contrato con dos números ("1000001 / 1000002") se separa en dos contratos con los mismos datos */
 function splitDoubles(contratos,W){
@@ -69,7 +75,8 @@ function finishCat(o){
   const vac=cuadrillas.filter(x=>!x.pers.length);if(vac.length)W.push(['warn',`${vac.length} cuadrillas sin personal: ${vac.map(x=>x.n).join(', ')}. Asignalo en Configuración → Cuadrillas.`]);
   Object.entries(contratos).forEach(([k,c])=>{if(!c.recs.length){c.recs=cuadrillas.map(x=>x.id);W.push(['warn',`Contrato ${k}: no tiene cuadrillas asignadas; se habilitaron todas.`])}});
   if(!habLoaded)W.push(['info','No vienen habilitaciones: se muestran como "Sin dato" y no bloquean el parte hasta que se carguen.']);
-  const nov=o.novedades&&o.novedades.length?o.novedades:D_NOV.map(([c,t])=>({c,t}));if(!(o.novedades&&o.novedades.length))W.push(['info','No vienen novedades de liquidación: se usan las de ejemplo. Se pueden importar desde el CSV del sistema de sueldos.']);
+  const nov=o.novedades&&o.novedades.length?o.novedades:D_NOV.map(([c,t])=>({c,t,id:''}));if(!(o.novedades&&o.novedades.length))W.push(['info','No vienen novedades de liquidación: se usan las de ejemplo. Se pueden importar desde el CSV del sistema de sueldos.']);
+  else{const sinId=nov.filter(x=>!x.id).length;if(sinId)W.push(['info',`${sinId===nov.length?'Las novedades vienen':sinId===1?'1 novedad viene':sinId+' novedades vienen'} sin el id del sistema de sueldos: se exportan solo con el código. Importá el CSV de sueldos para completarlo.`])}
   const nCt=op=>Object.values(contratos).filter(c=>c.op===op).length,ops=Object.keys(clientes).sort((a,b)=>nCt(b)-nCt(a)),opCrew=cuadrillas.find(x=>x.pers.length)||cuadrillas[0];
   const sp=sups.length?sups:personal.filter(p=>/supervisor/i.test(p.rol)).map(p=>p.n);
   return {cat:{src:'import',file,at:TODAY,by:meN(),clientes,cuadrillas,personal,equipos,eqInv:o.eqInv||[],km0:o.km0||{},sups:sp,rts:rts||[],habLoaded,novedades:nov,
@@ -113,7 +120,7 @@ function fromJson(j,file){
   (j.habilitaciones||[]).forEach(h=>{habLoaded=true;const s=String(h.sujeto||'').trim(),op=findCli(h.cliente);if(!s||!op){W.push(['warn',`Habilitación sin persona/interno o con cliente desconocido: ${s||'?'} · ${h.cliente||'?'}.`]);return}
     if(h.vence)hab[s+'|'+op]={vence:String(h.vence).slice(0,10)};else delete hab[s+'|'+op]});
   const rs=j.responsables||{};
-  const novedades=novList((j.novedades||[]).map(x=>{const o=asObj(x,'codigo');return [o.codigo,o.tipo]}));
+  const novedades=novList((j.novedades||[]).map(x=>{const o=asObj(x,'codigo');return [o.codigo,o.tipo,o.id,o.tabla_id]}),W);
   const ubic=ubicList(j.ubicaciones,cliOf,W);
   const res=finishCat({clientes,contratos,equipos,personal,cuadrillas,hab,habLoaded,W,file,sups:(rs.supervisores||[]).map(String),rts:(rs.tecnicos||[]).map(String),km0,inv,eqInv,novedades,ubicOps:ubic?new Set(ubic.map(u=>u.op)):null});
   if(ubic)res.ubic=ubic;return res;
@@ -150,7 +157,7 @@ function fromXlsx(wb,file){
     if(!equipos[s]&&!personal.some(p=>p.n===s))W.push(['warn',`Habilitación de "${s}": no es una persona ni un interno cargado.`]);if(/^\d{4}-\d{2}-\d{2}$/.test(v))hab[s+'|'+op]={vence:v}});
   const resp=sh('Responsables');const sups=resp.filter(r=>/super/i.test(col(r,'Tipo'))).map(r=>String(col(r,'Nombre')).trim()).filter(Boolean),rts=resp.filter(r=>/t[eé]cnico/i.test(col(r,'Tipo'))).map(r=>String(col(r,'Nombre')).trim()).filter(Boolean);
   if(!Object.keys(contratos).length)throw new Error('La plantilla no tiene contratos: revisá la hoja "Contratos".');
-  const novedades=novList(sh('Novedades').map(r=>[col(r,'Código','Codigo'),col(r,'Tipo')]));
+  const novedades=novList(sh('Novedades').map(r=>[col(r,'Código','Codigo'),col(r,'Tipo'),col(r,'Id sueldos','Id'),'']),W);
   return finishCat({clientes,contratos,equipos,personal,cuadrillas,hab,habLoaded:hs.length>0,W,file,sups,rts,km0,inv,eqInv,novedades});
 }
 function templateBlob(){
@@ -171,8 +178,8 @@ function templateBlob(){
     ['Cuadrillas',[['Código','Nombre','Tipo','Contratos','Origen'],...cat.cuadrillas.map(x=>[x.id,x.n,x.k||'Cuadrilla',ks.filter(k=>C[k].recs.includes(x.id)).join('; '),og(x.inv)])],[10,36,14,50,11]],
     ['Habilitaciones',[['Persona o interno','Cliente','Vence'],...hrows],[32,12,12]],
     ['Responsables',[['Tipo','Nombre'],...SUPS.map(n=>['Supervisor',n]),...RTS.map(n=>['Responsable técnico',n])],[22,32]],
-    ['Novedades',[['Código','Tipo'],...(cat.novedades||[]).map(x=>[x.c,x.t==='aus'?'Ausencia':'Liquidación'])],[24,14]],
-    ['Instrucciones',[['Cómo completar la plantilla'],['Cada hoja es una tabla. Los códigos (ID contrato, Código de cliente, Código de cuadrilla, Interno) vinculan las hojas entre sí.'],['Un contrato por fila. El ID contrato es el de VDS (ej. CT-PAE-001) y no cambia; el Nº contrato del cliente es el que sale en los partes y las certificaciones.'],['Servicios: una fila por servicio del contrato.'],['Tareas: una fila por código de facturación. Si dos códigos son la misma tarea en el parte, van con el mismo nombre en Tarea.'],['En las columnas "Contratos" se pueden poner varios valores separados por punto y coma (;).'],['Unidades: m³, m², m, t, km, viaje, maniobra, h, día, mes, unidad, punto. También se aceptan las de las listas de precios: HORAS, DIA, MES, UNIDAD, PUNTOS_RECORREDOR.'],['Las ubicaciones con coordenadas (pozos e instalaciones) se cargan con el archivo .json de datos maestros, no con esta plantilla.'],['Centros de costo: un contrato puede tener varios; al planificar se elige cuál usar. El primero de la lista es el que se propone.'],['Imputaciones: código de cuenta del cliente (sin espacios) y una descripción.'],['Origen: "Real" o "Inventado". Lo inventado es para probar la app y hay que reemplazarlo por datos reales.'],['Categoría de equipo en Tareas: indica qué tipo de equipo hace la tarea (debe coincidir con la Categoría de la hoja Equipos). Vacío = cualquier equipo.'],['Vence en Habilitaciones: fecha en formato dd/mm/aaaa. Si la hoja queda vacía, las habilitaciones se muestran como "Sin dato".'],['Después de completarla: Configuración → Datos maestros → Importar archivo.']],[110]]
+    ['Novedades',[['Id sueldos','Código','Tipo'],...(cat.novedades||[]).map(x=>[novId(x.c),x.c,x.t==='aus'?'Ausencia':'Liquidación'])],[11,24,14]],
+    ['Instrucciones',[['Cómo completar la plantilla'],['Cada hoja es una tabla. Los códigos (ID contrato, Código de cliente, Código de cuadrilla, Interno) vinculan las hojas entre sí.'],['Un contrato por fila. El ID contrato es el de VDS (ej. CT-PAE-001) y no cambia; el Nº contrato del cliente es el que sale en los partes y las certificaciones.'],['Servicios: una fila por servicio del contrato.'],['Tareas: una fila por código de facturación. Si dos códigos son la misma tarea en el parte, van con el mismo nombre en Tarea.'],['En las columnas "Contratos" se pueden poner varios valores separados por punto y coma (;).'],['Unidades: m³, m², m, t, km, viaje, maniobra, h, día, mes, unidad, punto. También se aceptan las de las listas de precios: HORAS, DIA, MES, UNIDAD, PUNTOS_RECORREDOR.'],['Las ubicaciones con coordenadas (pozos e instalaciones) se cargan con el archivo .json de datos maestros, no con esta plantilla.'],['Centros de costo: un contrato puede tener varios; al planificar se elige cuál usar. El primero de la lista es el que se propone.'],['Imputaciones: código de cuenta del cliente (sin espacios) y una descripción.'],['Novedades: Id sueldos es el id de la novedad en el sistema de sueldos. Se guarda y sale, junto con el código, en los Excel de novedades y de NLS.'],['Origen: "Real" o "Inventado". Lo inventado es para probar la app y hay que reemplazarlo por datos reales.'],['Categoría de equipo en Tareas: indica qué tipo de equipo hace la tarea (debe coincidir con la Categoría de la hoja Equipos). Vacío = cualquier equipo.'],['Vence en Habilitaciones: fecha en formato dd/mm/aaaa. Si la hoja queda vacía, las habilitaciones se muestran como "Sin dato".'],['Después de completarla: Configuración → Datos maestros → Importar archivo.']],[110]]
   ]);
 }
 function catCounts(cat,C,hab,nU){const v=Object.values(C);return [['Clientes',Object.keys(cat.clientes).length],['Contratos',v.length],['Imputaciones',v.reduce((n,c)=>n+c.imps.length,0)],nU?['Ubicaciones con mapa',nU.toLocaleString('es-AR')]:['Ubicaciones',v.reduce((n,c)=>n+(c.ubic||[]).length,0)],['Códigos de facturación',v.reduce((n,c)=>n+c.tareas.reduce((m,t)=>m+((t[4]||[]).length),0),0)],['Tareas',v.reduce((n,c)=>n+c.tareas.length,0)],['Cuadrillas',cat.cuadrillas.length],['Personas',cat.personal.length],['Equipos',Object.keys(cat.equipos).length],['Habilitaciones',cat.habLoaded?Object.keys(hab).length:'Sin datos'],['Novedades',(cat.novedades||[]).length],['Tareas sin unidad',v.reduce((n,c)=>n+c.tareas.filter(t=>!t[1]).length,0)]]}
