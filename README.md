@@ -41,6 +41,7 @@ vercel.json           # encabezados para Vercel
 css/app.css           # estilos y temas
 assets/img/           # fotos de la pantalla de ingreso y del operador
 assets/icons/         # íconos de la app
+docs/modelo-datos.sql # modelo de la base de datos para producción (PostgreSQL)
 js/
   config.js           # constantes, usuarios de prueba, íconos
   util.js             # textos, horas y fechas
@@ -116,7 +117,7 @@ Cada push a `main` publica en Vercel; cada rama tiene su propia dirección de pr
 
 ## Próximos pasos para producción
 
-1. **Servidor y base de datos** (por ejemplo Supabase o una API propia): usuarios reales, datos compartidos entre la tablet, la base y el cliente, y respaldo. El punto de cambio es `load()` / `save()` en `js/state.js`.
+1. **Servidor y base de datos** (por ejemplo Supabase o una API propia): usuarios reales, datos compartidos entre la tablet, la base y el cliente, y respaldo. El punto de cambio es `load()` / `save()` en `js/state.js`. El modelo de tablas, sobre la base común de VDS, está en [`docs/modelo-datos.sql`](docs/modelo-datos.sql).
 2. **Ingreso real** con el directorio de la empresa, reemplazando los usuarios de prueba de `js/config.js` (`EVAL=false` oculta los accesos de prueba).
 3. **Sincronización**: cola de envíos sin señal contra el servidor (hoy se marca y se libera al volver la señal).
 4. **Fotos y firmas** en un almacenamiento de archivos en lugar del dispositivo.
