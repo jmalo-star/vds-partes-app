@@ -60,7 +60,12 @@ function ubxFill(){
   let h=kb?`<button type="button" class="cbx-kb">${ic('search')}Escribir para buscar</button>`:'';
   if(!UB.ready)h+='<div class="cbx-none">Cargando ubicaciones…</div>';
   else if(!q){const rec=[...new Set(S.trabajos.filter(t=>t.uid&&CT(t.ct)&&CT(t.ct).op===op).sort((a,b)=>b.inicio.localeCompare(a.inicio)).map(t=>t.uid))].map(id=>UB.byId[id]).filter(Boolean).slice(0,8);
-    h+=`<div class="cbx-none">Escribí el nombre del pozo, la batería o el yacimiento. Hay ${ubicN(op).toLocaleString('es-AR')} ubicaciones de ${esc(OPS[op]||op)}.</div>`+(rec.length?`<div class="cbx-g">Usadas hace poco</div>${rec.map(opt).join('')}`:'')}
+    // sin escribir nada también se ven las instalaciones del cliente (baterías, plantas…), por yacimiento; los pozos son miles y se buscan
+    const rs=new Set(rec.map(u=>u.id)),yk=u=>u.y||u.a||'Sin yacimiento',g={};
+    UB.list.filter(u=>u.op===op&&u.t!=='Pozo'&&!rs.has(u.id)).sort((a,b)=>natCmp(yk(a),yk(b))||natCmp(a.n,b.n)).forEach(u=>(g[yk(u)]=g[yk(u)]||[]).push(u));
+    h+=`<div class="cbx-none">Escribí para buscar entre las ${ubicN(op).toLocaleString('es-AR')} ubicaciones de ${esc(OPS[op]||op)}: el pozo (ej. E-434), la instalación o el yacimiento.</div>`
+      +(rec.length?`<div class="cbx-g">Usadas hace poco</div>${rec.map(opt).join('')}`:'')
+      +Object.entries(g).map(([y,l])=>`<div class="cbx-g">Instalaciones · ${esc(y)}</div>${l.map(opt).join('')}`).join('')}
   else{const r=ubicFind(op,q,40);h+=r.list.map(opt).join('')||`<div class="cbx-none">Nada coincide con "${esc(q)}"</div>`;if(r.total>r.list.length)h+=`<div class="cbx-none">Se muestran ${r.list.length} de ${r.total.toLocaleString('es-AR')}: escribí más para acotar.</div>`}
   h+=`<button type="button" class="cbx-o otra" role="option" data-a="m-uotra" data-i="${i}">${ic('edit')}<span class="nm"><b>Otra ubicación: escribirla</b><small>Queda sin coordenadas: no se puede abrir en el mapa</small></span></button>`;
   CB.pop.innerHTML=h;CB.act=q&&CB.pop.querySelector('.cbx-o:not(.otra)')?0:-1;cbHi()}

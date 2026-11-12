@@ -19,7 +19,9 @@ function setBind(path,val){
   if(root==='s'&&keys[0]==='dct'){S.dimp='all'}
   if(root==='m'&&UI.modal.kind==='trab'&&keys[keys.length-1]==='pozo'&&val==='__otra'){const f=UI.modal.f,o=keys.length>1?f.more[keys[1]]:f;o.uo=true;o.pozo='';setTimeout(()=>{const t=$('#m-pozo'+(keys.length>1?Number(keys[1])+1:0));if(t)t.focus()},30);return}
   if(root==='m'&&UI.modal.kind==='trab'&&keys[0]==='op'){UI.modal.f.op=val;return setBind('m:ct',ctKeys(val)[0])}
-  if(root==='m'&&UI.modal.kind==='trab'&&keys[0]==='ct'){const c=CT(val);const f=UI.modal.f;f.op=c.op;f.uo=!(c.ubic||[]).length;f.more.forEach(o=>{o.pozo='';o.prev=[];o.uo=f.uo});f.rec=c.recs.includes(f.rec)?f.rec:c.recs[0];f.pozo='';f.prev=[];f.imp=c.imps[0][0];f.ccsel=ccFor(val,f.rec);f.pers=(CREW[f.rec]||[]).slice();f.eqs=(VEH[f.rec]||[]).slice()}
+  if(root==='m'&&UI.modal.kind==='trab'&&keys[0]==='ct'){const c=CT(val);const f=UI.modal.f;f.op=c.op;
+    // hay lista si el contrato tiene ubicaciones escritas o el cliente tiene ubicaciones con mapa; la elegida antes se borra entera
+    const uo=!(c.ubic||[]).length&&!ubicN(c.op);[f,...f.more].forEach(o=>Object.assign(o,{uo,pozo:'',yac:'',uid:'',lat:'',lon:'',prev:[]}));f.rec=c.recs.includes(f.rec)?f.rec:c.recs[0];f.imp=c.imps[0][0];f.ccsel=ccFor(val,f.rec);f.pers=(CREW[f.rec]||[]).slice();f.eqs=(VEH[f.rec]||[]).slice()}
   if(root==='m'&&UI.modal.kind==='trab'&&keys[0]==='rec'){const f=UI.modal.f;f.pers=(CREW[val]||[]).slice();f.eqs=(VEH[val]||[]).slice();f.ccsel=ccFor(f.ct,val)}
   if(root==='k'){logA('Catálogo de tareas modificado',keys[0],`${CT(keys[0]).tareas[keys[2]][0]}: ${keys[3]==='1'?'unidad':'categoría de equipo'} → ${val||'(vacío)'}`,'','config')}
   if(root==='q'){applyCat(S.cat);logA('Cuadrilla renombrada',S.cat.cuadrillas[keys[0]].id,val,'','config')}

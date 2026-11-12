@@ -14,11 +14,14 @@ const numN=v=>{if(v===''||v==null)return '';const n=Number(String(v).replace(','
 /* Ubicaciones con coordenadas: {campos:[…],filas:[[…]]} o una lista de objetos. Devuelve [{id,n,t,op,a,y,pv,e,lat,lon}] */
 function ubicList(src,cliOf,W){if(!src)return null;
   const F=Array.isArray(src.campos)?src.campos.map(norm):null,rows=F?(src.filas||[]):(Array.isArray(src)?src:[]);
-  const get=(r,k)=>F?r[F.indexOf(k)]:r[k];const out=[],seen=new Set();let bad=0;
+  const get=(r,k)=>F?r[F.indexOf(k)]:r[k];const out=[],seen=new Set(),place=new Set();let bad=0,dup=0;
   rows.forEach(r=>{const lat=Number(get(r,'lat')),lon=Number(get(r,'lon')),id=String(get(r,'id')||'').trim(),n=String(get(r,'nombre')||'').trim();
     if(!id||!n||!isFinite(lat)||!isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180||seen.has(id)){bad++;return}seen.add(id);
-    out.push({id,n,t:String(get(r,'tipo')||'').trim(),op:cliOf(get(r,'cliente')),a:String(get(r,'area')||'').trim(),y:String(get(r,'yacimiento')||'').trim(),pv:String(get(r,'provincia')||'').trim(),e:String(get(r,'estado')||'').trim(),lat,lon})});
-  if(bad)W.push(['warn',`${bad} ubicaciones sin nombre, con coordenadas inválidas o repetidas: no se cargaron.`]);
+    const u={id,n,t:String(get(r,'tipo')||'').trim(),op:cliOf(get(r,'cliente')),a:String(get(r,'area')||'').trim(),y:String(get(r,'yacimiento')||'').trim(),pv:String(get(r,'provincia')||'').trim(),e:String(get(r,'estado')||'').trim(),lat,lon};
+    // mismo cliente, nombre, tipo y punto: es el mismo lugar cargado dos veces (ej. una batería por cada punto de medición)
+    const pk=[u.op,norm(n),u.t,lat.toFixed(5),lon.toFixed(5)].join('|');if(place.has(pk)){dup++;return}place.add(pk);out.push(u)});
+  if(bad)W.push(['warn',`${bad} ${bad===1?'ubicación':'ubicaciones'} sin nombre, con coordenadas inválidas o con el id repetido: no se ${bad===1?'cargó':'cargaron'}.`]);
+  if(dup)W.push(['info',dup===1?'1 ubicación estaba repetida (mismo cliente, nombre, tipo y punto): quedó una sola.':`${dup} ubicaciones estaban repetidas (mismo cliente, nombre, tipo y punto): quedó una de cada una.`]);
   const by={};out.forEach(u=>by[u.op]=(by[u.op]||0)+1);
   W.push(['info',`Ubicaciones con coordenadas: ${out.length.toLocaleString('es-AR')} (${Object.entries(by).map(([k,v])=>`${k} ${v.toLocaleString('es-AR')}`).join(', ')}). Se buscan al planificar y se abren en Google Maps.`]);
   return out}
