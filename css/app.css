@@ -646,6 +646,8 @@ button.mrow:hover{border-color:var(--line-2)}
 .regtbl td.num{line-height:35px}
 .regtbl tr.cat td:first-child{box-shadow:inset 4px 0 0 var(--c)}
 .regtbl .unit{display:flex;align-items:center;height:35px;font-size:14px;color:var(--muted);font-weight:600;padding-left:4px}
+.regtbl .calc{display:flex;align-items:center;gap:4px;background:var(--panel-2);border-style:dashed;color:var(--ink);font-variant-numeric:tabular-nums;cursor:default}
+.regtbl .calc small{margin-left:auto;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
 .regtbl .ibtn{width:35px;height:35px}
 .regadd{flex-wrap:wrap}
 .regadd .sm{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}

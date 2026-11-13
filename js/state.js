@@ -168,6 +168,10 @@ const habSpan=(s,op,a,b)=>{const x=hab(s,op,a);if(habBad(x))return x;return hab(
 const habTxt=(h,long)=>h.st==='ok'?(long?'Hasta '+fS(h.vence):'Habilitado'):h.st==='pronto'?'Vence '+fS(h.vence):h.st==='venc'?'Vencida '+fS(h.vence):h.st==='nd'?'Sin dato':'Sin habilitación';
 const busyRes=(kind,name,days,exceptId)=>S.trabajos.filter(o=>o.id!==exceptId&&(kind==='p'?o.pers:o.eqs).includes(name)&&days.some(d=>covers(o,d))).map(o=>o.id);
 const regQ=x=>x.c==='op'&&Number(x.q)>0?num(x.q)+' '+(x.u||''):x.c==='vi'&&Number(x.q)>0?num(x.q)+' km/h':'';
+/* Tramo operativo medido en horas: la cantidad sale de Desde y Hasta y no se escribe a mano */
+const hAuto=r=>r.c==='op'&&r.u==='h';
+const hQty=r=>{const m=dur(r.de,r.a);return m?String(Math.round(m/60*100)/100):''};
+const regSyncQ=r=>{if(hAuto(r))r.q=hQty(r)};
 
 /* ---------- horario del personal: se toma solo de la llegada y de los tramos del día, y se puede ajustar ---------- */
 const autoIni=e=>{if(e.llegada)return e.llegada;const r=e.reg.filter(x=>x.c!=='tr'&&mins(x.de)!=null).sort((a,b)=>mins(a.de)-mins(b.de));return r[0]?r[0].de:''};

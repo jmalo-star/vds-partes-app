@@ -5,6 +5,7 @@ function setBind(path,val){
   const i=path.indexOf(':'),root=path.slice(0,i),keys=path.slice(i+1).split('.');
   let o=bindObj(root);
   if(!o)return;
+  const prevH=root==='e'&&keys[0]==='reg'&&hAuto(o.reg[keys[1]]);   // el tramo venía medido en horas
   if(root==='d'&&keys[0]==='hora'&&o.hora!==val){const sim=Object.assign({},o,{hora:val}),oc=ordChoque(sim,o)[0];if(oc){toast(ordMalTxt(oc,sim));return}const txt=`Hora de inicio: ${o.hora||'sin hora'} → ${val||'sin hora'}`;o.hist.push({t:nowT(),who:meN(),a:txt,c:''});logA('Hora de inicio modificada',o.id,txt,'','trabajo')}
   if(root==='e'&&keys[0]==='clima'){if(!o.clima)o.clima={t:'',v:'',r:'',dir:'O',cond:'Despejado',src:'manual'};o.clima.src='manual'}
   if(root==='e'&&keys[0]==='permiso'&&!o.permiso)o.permiso={num:'',firmo:'',hora:''};
@@ -27,7 +28,9 @@ function setBind(path,val){
   if(root==='q'){applyCat(S.cat);logA('Cuadrilla renombrada',S.cat.cuadrillas[keys[0]].id,val,'','config')}
   if(root==='e'&&keys[0]==='reg'){const p=cur(),r=p.ejec.reg[keys[1]];
     if(keys[2]==='d'&&r.c==='op'){const u=unitOf(p.ct,val);if(u)r.u=u}
-    if(keys[2]==='c'){delete UI.ddo['e:reg.'+keys[1]+'.d'];if(val==='vi'){r.u='km/h';r.q='';if(r.d&&ESP.includes(r.d))r.d=''}else if(val==='op'){r.u=unitOf(p.ct,r.d)||'';r.q=''}else{r.q='';r.u=''}if(val==='es'&&!ESP.includes(r.d))r.d='';if(val!=='es'&&ESP.includes(r.d))r.d=''}}
+    if(keys[2]==='c'){delete UI.ddo['e:reg.'+keys[1]+'.d'];if(val==='vi'){r.u='km/h';r.q='';if(r.d&&ESP.includes(r.d))r.d=''}else if(val==='op'){r.u=unitOf(p.ct,r.d)||'';r.q=''}else{r.q='';r.u=''}if(val==='es'&&!ESP.includes(r.d))r.d='';if(val!=='es'&&ESP.includes(r.d))r.d=''}
+    // en horas, la cantidad es la duración del tramo; si deja de medirse en horas, esa cantidad ya no vale
+    if(hAuto(r))r.q=hQty(r);else if(prevH)r.q=''}
 }
 function moveT(t,inicio,dias,why){
   const sim=Object.assign({},t,{inicio,dias}),oc=ordChoque(sim,t)[0];if(oc){toast(`${t.id} no se movió. ${ordMalTxt(oc,sim)}`);return false}
@@ -182,7 +185,7 @@ const A={
   'o-adde':d=>{const e=cur().ejec;if(!e.equipos.some(q=>q.c===d.n))e.equipos.push({c:d.n,km:'',obs:''});render()},
   'o-dele':d=>{cur().ejec.equipos.splice(Number(d.i),1);render()},
   'o-addr':d=>{const p=cur(),r=p.ejec.reg;const lastA=r.reduce((m,x)=>mins(x.a)>mins(m)?x.a:m,r.length?r[0].a:null);const de=lastA||(d.c==='tr'?'06:45':p.ejec.llegada||'07:30');
-    const it={c:d.c,de,a:addM(de,d.c==='rf'?30:60),d:d.d||'',q:'',u:d.c==='vi'?'km/h':'',det:''};if(d.d)it.u=unitOf(p.ct,d.d);r.push(it);render();
+    const it={c:d.c,de,a:addM(de,d.c==='rf'?30:60),d:d.d||'',q:'',u:d.c==='vi'?'km/h':'',det:''};if(d.d)it.u=unitOf(p.ct,d.d);regSyncQ(it);r.push(it);render();
     const tb=document.querySelector('.edbody [data-keep="t"]');if(tb)tb.scrollTop=tb.scrollHeight;
     const k=r.length-1;
     if(d.c==='op'&&d.d===''){UI.ddo['e:reg.'+k+'.d']=true;render()}   // "Otra tarea" prevista: directo a escribirla
@@ -196,7 +199,7 @@ const A={
   'o-sigclear':()=>{cur().ejec.firma=null;render()},
   'o-fin':d=>{const p=cur();p.fin=d.v;if(d.v==='ext'&&!p.ext)p.ext={dias:1,motivo:''};render()},
   'o-extd':d=>{const p=cur();p.ext.dias=Math.max(1,Math.min(10,p.ext.dias+Number(d.d)));render()},
-  'o-send':()=>{const p=cur();if(errs(p).length)return;const re=p.estado==='obs',ree=!!p.reed;delete p.reed;const t=trab(p.pl);const prev=p.dec,off=offline();p.estado='env';p.dec=null;if(off)p.cola=true;
+  'o-send':()=>{const p=cur();p.ejec.reg.forEach(regSyncQ);if(errs(p).length)return;const re=p.estado==='obs',ree=!!p.reed;delete p.reed;const t=trab(p.pl);const prev=p.dec,off=offline();p.estado='env';p.dec=null;if(off)p.cola=true;
     p.hist.push({t:nowT(),who:meN(),a:re?'Reenviado con correcciones':ree?'Reenviado con cambios del jefe':'Enviado para aprobación',c:''});
     logA(re?'Parte reenviado con correcciones':ree?'Parte reenviado con cambios':'Parte enviado para aprobación',p.id,[p.fin==='fin'?'Cierra el trabajo '+t.id:p.fin==='ext'?`Pide ${p.ext.dias} día(s) más`:'',off?'Cargado sin señal':''].filter(Boolean).join(' · '),re&&prev?'Responde a la observación de '+prev.who+': '+prev.com:'','parte');
     if(p.fin==='fin'&&!t.cierre){const ant=p.dia<t.dias-1;t.cierre={fecha:p.fecha,parte:p.id,who:meN(),t:nowT(),obs:p.ejec.obs,anticipado:ant,dias0:t.dias};
